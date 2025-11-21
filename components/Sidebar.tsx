@@ -91,6 +91,25 @@ export default function Sidebar({
                   <span className="text-sm">alqavi.md</span>
                 </div>
 
+                {/* contact.md file */}
+                <div
+                  className={cn(
+                    "flex items-center px-2 py-1 cursor-pointer transition-colors",
+                    activeFile === "contact.md" && "bg-surface-2 text-text-primary",
+                    "hover:bg-surface-2"
+                  )}
+                  onClick={() => {
+                    if (!openFiles.includes("contact.md")) {
+                      onFileClick("contact.md");
+                    } else {
+                      onFileClick("contact.md");
+                    }
+                  }}
+                >
+                  <File size={16} className="text-blue mr-2" />
+                  <span className="text-sm">contact.md</span>
+                </div>
+
                 {/* Custom Files folder */}
                 {customFiles.length > 0 && (
                   <div>

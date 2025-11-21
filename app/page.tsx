@@ -104,6 +104,9 @@ export default function Home() {
     } else if (activeFile === "alqavi.md") {
       // For alqavi.md, download it
       downloadFile("alqavi.md", editedContent || "");
+    } else if (activeFile === "contact.md") {
+      // For contact.md, download it
+      downloadFile("contact.md", editedContent || "");
     }
   };
 
@@ -148,6 +151,15 @@ export default function Home() {
       // If it's alqavi.md, load from API
       if (activeFile === "alqavi.md") {
         fetch("/api/alqavi")
+          .then(res => res.json())
+          .then(data => setEditedContent(data.content))
+          .catch(() => setEditedContent(""));
+        return;
+      }
+
+      // If it's contact.md, load from API
+      if (activeFile === "contact.md") {
+        fetch("/api/contact")
           .then(res => res.json())
           .then(data => setEditedContent(data.content))
           .catch(() => setEditedContent(""));

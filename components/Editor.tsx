@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Copy, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ export default function Editor({
 }: EditorProps) {
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadContent = async () => {
@@ -75,7 +76,32 @@ export default function Editor({
         return;
       }
 
-      // 2. Check if it's a custom file (but not alqavi.md)
+      // 2. If it's contact.md, load from local file
+      if (activeFile === "contact.md") {
+        try {
+          const response = await fetch("/api/contact");
+          if (response.ok) {
+            const data = await response.json();
+            setContent(data.content);
+            if (onContentChange) {
+              onContentChange(data.content);
+            }
+          } else {
+            setContent("# Error\n\nFailed to load contact.md");
+            if (onContentChange) {
+              onContentChange("");
+            }
+          }
+        } catch (error) {
+          setContent("# Error\n\nFailed to load contact.md");
+          if (onContentChange) {
+            onContentChange("");
+          }
+        }
+        return;
+      }
+
+      // 3. Check if it's a custom file (but not alqavi.md or contact.md)
       if (fileSystem) {
         const customFile = fileSystem.getFile(activeFile);
         if (customFile) {
@@ -87,7 +113,7 @@ export default function Editor({
         }
       }
 
-      // 3. If it's a project, fetch README from GitHub
+      // 4. If it's a project, fetch README from GitHub
       const project = projectsData.find((p) => p.id === activeFile);
       if (project && project.githubUrl) {
         setLoading(true);
@@ -140,7 +166,7 @@ export default function Editor({
         return;
       }
 
-      // 4. Fallback - no content found
+      // 5. Fallback - no content found
       setContent(`# Unknown File\n\nNo content available for this file.`);
       if (onContentChange) {
         onContentChange("");
@@ -154,6 +180,7 @@ export default function Editor({
 
   const getFileName = (fileId: string) => {
     if (fileId === "alqavi.md") return "alqavi.md";
+    if (fileId === "contact.md") return "contact.md";
     if (fileSystem) {
       const customFile = fileSystem.getFile(fileId);
       if (customFile) return customFile.name;
@@ -165,8 +192,19 @@ export default function Editor({
   const isEditable = () => {
     if (!activeFile) return false;
     if (activeFile === "alqavi.md") return true;
+    if (activeFile === "contact.md") return true;
     if (fileSystem && fileSystem.getFile(activeFile)) return true;
     return false;
+  };
+
+  const handleCopy = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   // Get the current content to display
@@ -286,14 +324,61 @@ export default function Editor({
                 pre: ({ node, ...props }) => (
                   <pre className="bg-surface-0 p-4 rounded-lg overflow-x-auto mb-4" {...props} />
                 ),
-                a: ({ node, ...props }: any) => (
-                  <a
-                    className="text-blue hover:text-blue-light underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...props}
-                  />
-                ),
+                a: ({ node, href, children, ...props }: any) => {
+                  const isContactFile = activeFile === "contact.md";
+                  if (isContactFile && href) {
+                    // Extract the text to copy (email, phone, or URL)
+                    let copyText = href;
+                    if (href.startsWith("mailto:")) {
+                      copyText = href.replace("mailto:", "");
+                    } else if (href.startsWith("tel:")) {
+                      copyText = href.replace("tel:", "");
+                    } else {
+                      copyText = href;
+                    }
+                    const linkId = `contact-link-${copyText}`;
+                    const isCopied = copiedId === linkId;
+
+                    return (
+                      <span className="inline-flex items-center gap-2 group">
+                        <a
+                          className="text-blue hover:text-blue-light underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          href={href}
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleCopy(copyText, linkId);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-text-tertiary hover:text-text-primary"
+                          title="Copy to clipboard"
+                        >
+                          {isCopied ? (
+                            <Check size={14} className="text-green" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
+                      </span>
+                    );
+                  }
+                  return (
+                    <a
+                      className="text-blue hover:text-blue-light underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href={href}
+                      {...props}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
                 ul: ({ node, ...props }) => (
                   <ul className="list-disc list-inside mb-4 text-text-secondary space-y-1" {...props} />
                 ),
