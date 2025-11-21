@@ -9,14 +9,20 @@ type MenuItemWithLabel = {
   action?: () => void;
   submenu?: MenuItem[];
   shortcut?: string;
-  divider?: false;
+  divider?: never;
 };
 
 type MenuItemDivider = {
   divider: true;
+  label?: never;
+  action?: never;
+  submenu?: never;
+  shortcut?: never;
 };
 
 type MenuItem = MenuItemWithLabel | MenuItemDivider;
+
+const DIVIDER: MenuItemDivider = { divider: true } as const;
 
 interface MenuBarProps {
   onNewFile?: () => void;
@@ -60,7 +66,7 @@ export default function MenuBar({
     };
   }, [activeMenu]);
 
-  const divider = (): MenuItemDivider => ({ divider: true });
+  const divider = (): MenuItem => DIVIDER;
 
   const menus: { label: string; items: MenuItem[] }[] = [
     {
