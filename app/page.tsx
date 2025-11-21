@@ -43,8 +43,8 @@ export default function Home() {
     }
   };
 
-  const handleProjectClick = (project: any) => {
-    handleFileClick(project.id);
+  const handleProjectClick = (fileId: string) => {
+    handleFileClick(fileId);
   };
 
   const handleFileClose = (file: string) => {
@@ -286,8 +286,8 @@ export default function Home() {
                 handleFileClick(file);
                 setMobileSidebarOpen(false);
               }}
-              onProjectClick={(project) => {
-                handleProjectClick(project);
+              onProjectClick={(fileId) => {
+                handleProjectClick(fileId);
                 setMobileSidebarOpen(false);
               }}
               customFiles={customFiles}

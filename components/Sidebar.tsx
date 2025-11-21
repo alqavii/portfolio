@@ -10,7 +10,7 @@ interface SidebarProps {
   openFiles: string[];
   activeFile: string | null;
   onFileClick: (file: string) => void;
-  onProjectClick: (project: any) => void;
+  onProjectClick?: (fileId: string) => void;
   customFiles?: FileSystemFile[];
   onDeleteFile?: (id: string) => void;
 }
@@ -176,44 +176,82 @@ export default function Sidebar({
 
                   {isExpanded("projects") && (
                     <div className="ml-4">
-                      {projectsData.map((project) => (
-                        <div
-                          key={project.id}
-                          className={cn(
-                            "flex items-center px-2 py-1 cursor-pointer group transition-colors",
-                            activeFile === project.id && "bg-surface-2 text-text-primary",
-                            "hover:bg-surface-2"
-                          )}
-                          onClick={() => onProjectClick(project)}
-                        >
-                          <File size={16} className="text-green mr-2" />
-                          <span className="text-sm flex-1">{project.name}</span>
-                          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-                            {project.githubUrl && (
-                              <a
-                                href={project.githubUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-text-tertiary hover:text-blue"
-                              >
-                                <Github size={14} />
-                              </a>
-                            )}
-                            {project.demoUrl && (
-                              <a
-                                href={project.demoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-text-tertiary hover:text-blue"
-                              >
-                                <ExternalLink size={14} />
-                              </a>
+                      {projectsData.map((project) => {
+                        const projectFolderId = `project-${project.id}`;
+                        const isProjectFolderExpanded = expandedFolders.includes(projectFolderId);
+                        const readmeId = `projects/${project.id}/README.md`;
+                        const projectFileId = `projects/${project.id}/${project.name}`;
+                        
+                        return (
+                          <div key={project.id}>
+                            <div
+                              className="flex items-center px-2 py-1 hover:bg-surface-2 cursor-pointer transition-colors"
+                              onClick={() => toggleFolder(projectFolderId)}
+                            >
+                              {isProjectFolderExpanded ? (
+                                <FolderOpen size={16} className="text-yellow mr-2" />
+                              ) : (
+                                <Folder size={16} className="text-yellow mr-2" />
+                              )}
+                              <span className="text-sm">{project.name}</span>
+                            </div>
+                            
+                            {isProjectFolderExpanded && (
+                              <div className="ml-4">
+                                {/* README.md file */}
+                                <div
+                                  className={cn(
+                                    "flex items-center px-2 py-1 cursor-pointer transition-colors",
+                                    activeFile === readmeId && "bg-surface-2 text-text-primary",
+                                    "hover:bg-surface-2"
+                                  )}
+                                  onClick={() => onFileClick(readmeId)}
+                                >
+                                  <File size={16} className="text-green mr-2" />
+                                  <span className="text-sm">README.md</span>
+                                </div>
+                                
+                                {/* Project demo file */}
+                                <div
+                                  className={cn(
+                                    "flex items-center px-2 py-1 cursor-pointer group transition-colors",
+                                    activeFile === projectFileId && "bg-surface-2 text-text-primary",
+                                    "hover:bg-surface-2"
+                                  )}
+                                  onClick={() => onFileClick(projectFileId)}
+                                >
+                                  <File size={16} className="text-blue mr-2" />
+                                  <span className="text-sm flex-1">{project.name}</span>
+                                  <div className="opacity-0 group-hover:opacity-100 flex gap-1">
+                                    {project.githubUrl && (
+                                      <a
+                                        href={project.githubUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-text-tertiary hover:text-blue"
+                                      >
+                                        <Github size={14} />
+                                      </a>
+                                    )}
+                                    {project.demoUrl && (
+                                      <a
+                                        href={project.demoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-text-tertiary hover:text-blue"
+                                      >
+                                        <ExternalLink size={14} />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

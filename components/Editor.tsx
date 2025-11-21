@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Copy, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -113,60 +113,80 @@ export default function Editor({
         }
       }
 
-      // 4. If it's a project, fetch README from GitHub
-      const project = projectsData.find((p) => p.id === activeFile);
-      if (project && project.githubUrl) {
-        setLoading(true);
-        try {
-          // Convert GitHub URL to raw README URL
-          const repoUrl = project.githubUrl.replace("github.com", "raw.githubusercontent.com");
-          
-          // Try main branch first
-          let readmeUrl = `${repoUrl}/main/README.md`;
-          let response = await fetch(readmeUrl, {
-            method: "GET",
-            headers: {
-              Accept: "text/plain",
-            },
-          });
-          
-          if (!response.ok) {
-            // Try master branch if main doesn't work
-            readmeUrl = `${repoUrl}/master/README.md`;
-            response = await fetch(readmeUrl, {
+      // 4. Check if it's a project README.md file (projects/{projectId}/README.md)
+      if (activeFile.startsWith("projects/") && activeFile.endsWith("/README.md")) {
+        const projectId = activeFile.split("/")[1];
+        const project = projectsData.find((p) => p.id === projectId);
+        if (project && project.githubUrl) {
+          setLoading(true);
+          try {
+            // Convert GitHub URL to raw README URL
+            const repoUrl = project.githubUrl.replace("github.com", "raw.githubusercontent.com");
+            
+            // Try main branch first
+            let readmeUrl = `${repoUrl}/main/README.md`;
+            let response = await fetch(readmeUrl, {
               method: "GET",
               headers: {
                 Accept: "text/plain",
               },
             });
-          }
-          
-          if (response.ok) {
-            const text = await response.text();
-            setContent(text || `# ${project.displayName}\n\n${project.description || "No README content."}`);
-            if (onContentChange) {
-              onContentChange(text || "");
+            
+            if (!response.ok) {
+              // Try master branch if main doesn't work
+              readmeUrl = `${repoUrl}/master/README.md`;
+              response = await fetch(readmeUrl, {
+                method: "GET",
+                headers: {
+                  Accept: "text/plain",
+                },
+              });
             }
-          } else {
-            const errorContent = `# ${project.displayName}\n\n${project.description || "No README available."}\n\n**Note**: Could not fetch README from GitHub. Please check the repository URL.`;
+            
+            if (response.ok) {
+              const text = await response.text();
+              setContent(text || `# ${project.displayName}\n\n${project.description || "No README content."}`);
+              if (onContentChange) {
+                onContentChange(text || "");
+              }
+            } else {
+              const errorContent = `# ${project.displayName}\n\n${project.description || "No README available."}\n\n**Note**: Could not fetch README from GitHub. Please check the repository URL.`;
+              setContent(errorContent);
+              if (onContentChange) {
+                onContentChange("");
+              }
+            }
+          } catch (error) {
+            const errorContent = `# ${project.displayName}\n\n${project.description || "Failed to load README from GitHub."}\n\n**Error**: ${error instanceof Error ? error.message : "Unknown error"}`;
             setContent(errorContent);
             if (onContentChange) {
               onContentChange("");
             }
+          } finally {
+            setLoading(false);
           }
-        } catch (error) {
-          const errorContent = `# ${project.displayName}\n\n${project.description || "Failed to load README from GitHub."}\n\n**Error**: ${error instanceof Error ? error.message : "Unknown error"}`;
-          setContent(errorContent);
-          if (onContentChange) {
-            onContentChange("");
-          }
-        } finally {
-          setLoading(false);
+          return;
         }
-        return;
       }
 
-      // 5. Fallback - no content found
+      // 5. Check if it's a project demo file (projects/{projectId}/{projectName})
+      if (activeFile.startsWith("projects/") && !activeFile.endsWith("/README.md")) {
+        const parts = activeFile.split("/");
+        if (parts.length === 3) {
+          const projectId = parts[1];
+          const project = projectsData.find((p) => p.id === projectId);
+          if (project && project.demoUrl) {
+            // This will be handled by the render logic below
+            setContent(""); // Empty content, we'll render iframe instead
+            if (onContentChange) {
+              onContentChange("");
+            }
+            return;
+          }
+        }
+      }
+
+      // 6. Fallback - no content found
       setContent(`# Unknown File\n\nNo content available for this file.`);
       if (onContentChange) {
         onContentChange("");
@@ -185,8 +205,14 @@ export default function Editor({
       const customFile = fileSystem.getFile(fileId);
       if (customFile) return customFile.name;
     }
-    const project = projectsData.find((p) => p.id === fileId);
-    return project ? `${project.name}/README.md` : fileId;
+    // Handle project files
+    if (fileId.startsWith("projects/")) {
+      const parts = fileId.split("/");
+      if (parts.length === 3) {
+        return parts[2]; // Return the filename (README.md or project name)
+      }
+    }
+    return fileId;
   };
 
   const isEditable = () => {
@@ -194,7 +220,19 @@ export default function Editor({
     if (activeFile === "alqavi.md") return true;
     if (activeFile === "contact.md") return true;
     if (fileSystem && fileSystem.getFile(activeFile)) return true;
+    // Project files are not editable
     return false;
+  };
+
+  const getProjectDemoUrl = () => {
+    if (!activeFile || !activeFile.startsWith("projects/")) return null;
+    const parts = activeFile.split("/");
+    if (parts.length === 3 && !activeFile.endsWith("/README.md")) {
+      const projectId = parts[1];
+      const project = projectsData.find((p) => p.id === projectId);
+      return project?.demoUrl || null;
+    }
+    return null;
   };
 
   const handleCopy = async (text: string, id: string) => {
@@ -246,7 +284,7 @@ export default function Editor({
             </div>
           );
         })}
-        {isEditable() && onToggleEditMode && (
+        {isEditable() && onToggleEditMode && !getProjectDemoUrl() && (
           <div className="ml-auto px-2 md:px-4">
             <button
               onClick={onToggleEditMode}
@@ -275,20 +313,43 @@ export default function Editor({
           <div className="flex items-center justify-center h-full">
             <div className="text-text-tertiary">Loading...</div>
           </div>
-        ) : editorMode === "edit" && isEditable() ? (
-          <textarea
-            value={editedContent}
-            onChange={(e) => {
-              if (onContentChange) {
-                onContentChange(e.target.value);
-              }
-            }}
-            className="w-full h-full bg-base text-text-primary font-mono text-sm p-4 md:p-8 outline-none resize-none"
-            placeholder="Start typing..."
-            spellCheck={false}
-          />
-        ) : (
-          <div className="prose prose-invert max-w-none p-4 md:p-8">
+        ) : (() => {
+          const demoUrl = getProjectDemoUrl();
+          // Render embedded iframe for project demo files
+          if (demoUrl && editorMode === "view") {
+            return (
+              <div className="w-full h-full bg-base">
+                <iframe
+                  src={demoUrl}
+                  className="w-full h-full border-0"
+                  title="Project Demo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            );
+          }
+          
+          // Render edit mode for editable files
+          if (editorMode === "edit" && isEditable()) {
+            return (
+              <textarea
+                value={editedContent}
+                onChange={(e) => {
+                  if (onContentChange) {
+                    onContentChange(e.target.value);
+                  }
+                }}
+                className="w-full h-full bg-base text-text-primary font-mono text-sm p-4 md:p-8 outline-none resize-none"
+                placeholder="Start typing..."
+                spellCheck={false}
+              />
+            );
+          }
+          
+          // Render markdown content (default)
+          return (
+            <div className="prose prose-invert max-w-none p-4 md:p-8">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               className="markdown-content"
@@ -296,15 +357,36 @@ export default function Editor({
                 h1: ({ node, ...props }) => (
                   <h1 className="text-3xl font-bold text-text-primary mb-4 mt-6" {...props} />
                 ),
-                h2: ({ node, ...props }) => (
-                  <h2 className="text-2xl font-bold text-text-primary mb-3 mt-5" {...props} />
-                ),
+                h2: ({ node, ...props }) => {
+                  const isContactFile = activeFile === "contact.md";
+                  return (
+                    <h2 
+                      className={cn(
+                        "text-2xl font-bold text-text-primary",
+                        isContactFile ? "mb-2 mt-4" : "mb-3 mt-5"
+                      )} 
+                      {...props} 
+                    />
+                  );
+                },
                 h3: ({ node, ...props }) => (
                   <h3 className="text-xl font-bold text-text-primary mb-2 mt-4" {...props} />
                 ),
-                p: ({ node, ...props }) => (
-                  <p className="text-text-secondary mb-4 leading-relaxed" {...props} />
-                ),
+                p: ({ node, children, ...props }: any) => {
+                  const isContactFile = activeFile === "contact.md";
+                  // Reduce spacing for paragraphs in contact.md
+                  return (
+                    <p 
+                      className={cn(
+                        "text-text-secondary leading-relaxed",
+                        isContactFile ? "mb-2" : "mb-4"
+                      )} 
+                      {...props}
+                    >
+                      {children}
+                    </p>
+                  );
+                },
                 code: ({ node, inline, ...props }: any) => {
                   if (inline) {
                     return (
@@ -340,7 +422,7 @@ export default function Editor({
                     const isCopied = copiedId === linkId;
 
                     return (
-                      <span className="inline-flex items-center gap-2 group">
+                      <span className="inline-flex items-center gap-1.5 group">
                         <a
                           className="text-blue hover:text-blue-light underline"
                           target="_blank"
@@ -355,7 +437,7 @@ export default function Editor({
                             e.preventDefault();
                             handleCopy(copyText, linkId);
                           }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-text-tertiary hover:text-text-primary"
+                          className="opacity-60 group-hover:opacity-100 transition-opacity text-text-tertiary hover:text-text-primary ml-0.5"
                           title="Copy to clipboard"
                         >
                           {isCopied ? (
@@ -399,7 +481,8 @@ export default function Editor({
               {displayContent}
             </ReactMarkdown>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
