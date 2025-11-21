@@ -4,25 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type MenuItemWithLabel = {
-  label: string;
+interface MenuItem {
+  label?: string;
   action?: () => void;
   submenu?: MenuItem[];
   shortcut?: string;
-  divider?: never;
-};
-
-type MenuItemDivider = {
-  divider: true;
-  label?: never;
-  action?: never;
-  submenu?: never;
-  shortcut?: never;
-};
-
-type MenuItem = MenuItemWithLabel | MenuItemDivider;
-
-const DIVIDER: MenuItemDivider = { divider: true } as const;
+  divider?: boolean;
+}
 
 interface MenuBarProps {
   onNewFile?: () => void;
@@ -66,7 +54,7 @@ export default function MenuBar({
     };
   }, [activeMenu]);
 
-  const divider = (): MenuItem => DIVIDER;
+  const divider = (): MenuItem => ({ divider: true });
 
   const menus: { label: string; items: MenuItem[] }[] = [
     {
