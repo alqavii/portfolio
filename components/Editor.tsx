@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Copy, Check } from "lucide-react";
+import { X, Copy, Check, ExternalLink } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,8 @@ export default function Editor({
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [iframeError, setIframeError] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
     const loadContent = async () => {
@@ -235,6 +237,44 @@ export default function Editor({
     return null;
   };
 
+  // Reset iframe state when switching files and detect blocking
+  useEffect(() => {
+    setIframeError(false);
+    setIframeLoading(true);
+    
+    const demoUrl = getProjectDemoUrl();
+    if (demoUrl && editorMode === "view") {
+      // Check if iframe is blocked after a short delay
+      const checkIframe = setTimeout(() => {
+        const iframe = document.querySelector('iframe[title="Project Demo"]') as HTMLIFrameElement;
+        if (iframe) {
+          try {
+            // Try to access iframe - if blocked by X-Frame-Options, this might help detect it
+            // But X-Frame-Options blocking is silent, so we use a timeout approach
+            const hasWindow = iframe.contentWindow !== null;
+            // If we can access the window but can't access document, might be blocked
+            if (hasWindow) {
+              try {
+                // Try to access document - will throw if cross-origin (normal) or if blocked
+                const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                // If we get here and doc is null, might indicate blocking
+              } catch (e) {
+                // Cross-origin is normal, not an error
+              }
+            }
+          } catch (e) {
+            // Cross-origin restrictions are normal
+          }
+        }
+        setIframeLoading(false);
+      }, 2000);
+      
+      return () => clearTimeout(checkIframe);
+    } else {
+      setIframeLoading(false);
+    }
+  }, [activeFile, editorMode]);
+
   const handleCopy = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -317,15 +357,90 @@ export default function Editor({
           const demoUrl = getProjectDemoUrl();
           // Render embedded iframe for project demo files
           if (demoUrl && editorMode === "view") {
+            if (iframeError) {
+              // Show fallback UI when iframe fails to load
+              return (
+                <div className="w-full h-full bg-base flex items-center justify-center p-8">
+                  <div className="max-w-md text-center space-y-4">
+                    <div className="text-text-tertiary text-lg">
+                      Unable to embed this page
+                    </div>
+                    <p className="text-text-secondary text-sm">
+                      This website has security restrictions that prevent it from being embedded in an iframe. 
+                      Click the button below to open it in a new tab instead.
+                    </p>
+                    <a
+                      href={demoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors"
+                    >
+                      <ExternalLink size={16} />
+                      Open in New Tab
+                    </a>
+                  </div>
+                </div>
+              );
+            }
+            
             return (
-              <div className="w-full h-full bg-base">
+              <div className="w-full h-full bg-base relative">
                 <iframe
                   src={demoUrl}
                   className="w-full h-full border-0"
                   title="Project Demo"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  onLoad={() => {
+                    setIframeLoading(false);
+                  }}
+                  onError={() => {
+                    setIframeError(true);
+                    setIframeLoading(false);
+                  }}
                 />
+                {/* Loading overlay */}
+                {iframeLoading && !iframeError && (
+                  <div className="absolute inset-0 bg-base/90 backdrop-blur-sm flex items-center justify-center">
+                    <div className="text-text-tertiary">Loading...</div>
+                  </div>
+                )}
+                {/* Fallback button - always visible in corner for easy access */}
+                <div className="absolute top-4 right-4 z-10">
+                  <a
+                    href={demoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-surface-1 hover:bg-surface-2 text-text-secondary hover:text-text-primary rounded-lg transition-colors text-sm border border-surface-2"
+                    title="Open in new tab (if iframe is blocked)"
+                  >
+                    <ExternalLink size={14} />
+                    <span className="hidden sm:inline">Open in New Tab</span>
+                  </a>
+                </div>
+                {/* Error message overlay */}
+                {iframeError && (
+                  <div className="absolute inset-0 bg-base/95 backdrop-blur-sm flex items-center justify-center p-8">
+                    <div className="max-w-md text-center space-y-4">
+                      <div className="text-text-tertiary text-lg font-semibold">
+                        Unable to embed this page
+                      </div>
+                      <p className="text-text-secondary text-sm">
+                        This website has security restrictions (X-Frame-Options) that prevent it from being embedded. 
+                        Please use the button above or click below to open it in a new tab.
+                      </p>
+                      <a
+                        href={demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors"
+                      >
+                        <ExternalLink size={16} />
+                        Open in New Tab
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           }
