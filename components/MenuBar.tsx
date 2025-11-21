@@ -4,13 +4,17 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface MenuItem {
-  label: string;
-  action?: () => void;
-  submenu?: MenuItem[];
-  shortcut?: string;
-  divider?: boolean;
-}
+type MenuItem =
+  | {
+      label: string;
+      action?: () => void;
+      submenu?: MenuItem[];
+      shortcut?: string;
+      divider?: false;
+    }
+  | {
+      divider: true;
+    };
 
 interface MenuBarProps {
   onNewFile?: () => void;
