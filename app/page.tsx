@@ -14,6 +14,7 @@ export default function Home() {
   const [openFiles, setOpenFiles] = useState<string[]>(["alqavi.md"]);
   const [activeFile, setActiveFile] = useState<string | null>("alqavi.md");
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(256);
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [fileSystem] = useState(() => new FileSystem());
   const [customFiles, setCustomFiles] = useState<FileSystemFile[]>([]);
@@ -23,6 +24,8 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -246,19 +249,21 @@ export default function Home() {
         )}
 
         {/* Activity Bar - Hidden on mobile */}
-        <div className="hidden md:block">
+        <div className="hidden md:block h-full">
           <ActivityBar activeView={activeView} onViewChange={setActiveView} />
         </div>
         
         {/* Sidebar - Drawer on mobile, normal on desktop */}
         {activeView === "explorer" && (
           <div
+            ref={sidebarRef}
             className={`
-              fixed md:static inset-y-0 left-0 z-50 md:z-auto
+              fixed md:static inset-y-0 md:inset-y-auto left-0 z-50 md:z-auto
               transform transition-transform duration-300 ease-in-out
               ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
               md:translate-x-0
               bg-surface-0
+              md:h-full
             `}
             style={{ width: isMobile ? "280px" : `${sidebarWidth}px` }}
           >
@@ -292,12 +297,20 @@ export default function Home() {
           <div
             className="hidden md:block w-1 cursor-col-resize hover:bg-blue/20 transition-colors flex-shrink-0"
             onMouseDown={(e) => {
+              e.preventDefault();
               const startX = e.clientX;
               const startWidth = sidebarWidth;
 
               const handleMouseMove = (e: MouseEvent) => {
                 const diff = e.clientX - startX;
                 const newWidth = Math.max(150, Math.min(500, startWidth + diff));
+                
+                // Update directly via ref for immediate visual feedback
+                if (sidebarRef.current) {
+                  sidebarRef.current.style.width = `${newWidth}px`;
+                }
+                
+                // Update state for persistence
                 setSidebarWidth(newWidth);
               };
 
@@ -341,9 +354,46 @@ export default function Home() {
             onContentChange={setEditedContent}
             onToggleEditMode={handleToggleEditMode}
           />
+          {!terminalCollapsed && (
+            <div
+              className="h-1 cursor-row-resize hover:bg-blue/20 transition-colors flex-shrink-0"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                const startY = e.clientY;
+                const startHeight = terminalHeight;
+
+                const handleMouseMove = (e: MouseEvent) => {
+                  const diff = startY - e.clientY; // Inverted because we're resizing from top
+                  const newHeight = Math.max(100, Math.min(600, startHeight + diff));
+                  
+                  // Update directly via ref for immediate visual feedback
+                  if (terminalRef.current) {
+                    terminalRef.current.style.height = `${newHeight}px`;
+                  }
+                  
+                  // Update state for persistence
+                  setTerminalHeight(newHeight);
+                };
+
+                const handleMouseUp = () => {
+                  document.removeEventListener("mousemove", handleMouseMove);
+                  document.removeEventListener("mouseup", handleMouseUp);
+                  document.body.style.cursor = "";
+                  document.body.style.userSelect = "";
+                };
+
+                document.addEventListener("mousemove", handleMouseMove);
+                document.addEventListener("mouseup", handleMouseUp);
+                document.body.style.cursor = "row-resize";
+                document.body.style.userSelect = "none";
+              }}
+            />
+          )}
           <Terminal
+            ref={terminalRef}
             isCollapsed={terminalCollapsed}
             onToggle={() => setTerminalCollapsed(!terminalCollapsed)}
+            height={terminalHeight}
           />
         </div>
       </div>

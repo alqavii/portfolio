@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef } from "react";
 import { ChevronUp, ChevronDown, Terminal as TerminalIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TerminalProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  height?: number;
 }
 
 interface TerminalLine {
@@ -14,7 +15,8 @@ interface TerminalLine {
   text: string;
 }
 
-export default function Terminal({ isCollapsed, onToggle }: TerminalProps) {
+const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
+  ({ isCollapsed, onToggle, height = 256 }, ref) => {
   const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([
     { type: "output", text: "Windows PowerShell" },
     { type: "output", text: "Copyright (C) Microsoft Corporation. All rights reserved." },
@@ -103,10 +105,12 @@ export default function Terminal({ isCollapsed, onToggle }: TerminalProps) {
 
   return (
     <div
+      ref={ref}
       className={cn(
-        "bg-surface-0 border-t border-surface-2/50 flex flex-col transition-all duration-300",
-        isCollapsed ? "h-8" : "h-48 md:h-64"
+        "bg-surface-0 border-t border-surface-2/50 flex flex-col",
+        isCollapsed ? "h-8 transition-all duration-300" : ""
       )}
+      style={!isCollapsed ? { height: `${height}px` } : undefined}
     >
       <div className="flex items-center justify-between px-4 py-1 bg-surface-2/30 border-b border-surface-2/50">
         <div className="flex items-center gap-2">
@@ -157,5 +161,8 @@ export default function Terminal({ isCollapsed, onToggle }: TerminalProps) {
       )}
     </div>
   );
-}
+});
 
+Terminal.displayName = "Terminal";
+
+export default Terminal;

@@ -50,7 +50,7 @@ export default function Sidebar({
   const isExpanded = (folder: string) => expandedFolders.includes(folder);
 
   return (
-    <div className="w-full md:w-64 bg-surface-0 text-text-secondary flex flex-col h-full border-r border-surface-2 min-h-full">
+    <div className="w-full bg-surface-0 text-text-secondary flex flex-col h-full border-r border-surface-2">
       <div className="px-4 py-2 text-xs font-semibold text-text-tertiary uppercase tracking-wider border-b border-surface-2 bg-surface-2/50">
         Explorer
       </div>

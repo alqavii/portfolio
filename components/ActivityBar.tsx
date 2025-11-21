@@ -24,7 +24,7 @@ export default function ActivityBar({ activeView, onViewChange }: ActivityBarPro
   ];
 
   return (
-    <div className="w-12 bg-surface-0 flex flex-col items-center py-2 border-r border-surface-2/50">
+    <div className="w-12 bg-surface-0 flex flex-col items-center py-2 border-r border-surface-2/50 h-full">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeView === item.id;
@@ -50,6 +50,7 @@ export default function ActivityBar({ activeView, onViewChange }: ActivityBarPro
           </button>
         );
       })}
+      <div className="flex-1" />
     </div>
   );
 }

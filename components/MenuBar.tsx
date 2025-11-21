@@ -4,17 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type MenuItem =
-  | {
-      label: string;
-      action?: () => void;
-      submenu?: MenuItem[];
-      shortcut?: string;
-      divider?: false;
-    }
-  | {
-      divider: true;
-    };
+type MenuItem = 
+  | { label: string; action?: () => void; submenu?: MenuItem[]; shortcut?: string; divider?: false }
+  | { divider: true };
 
 interface MenuBarProps {
   onNewFile?: () => void;
@@ -58,19 +50,21 @@ export default function MenuBar({
     };
   }, [activeMenu]);
 
+  const divider = (): MenuItem => ({ divider: true });
+
   const menus: { label: string; items: MenuItem[] }[] = [
     {
       label: "File",
       items: [
         { label: "New File", shortcut: "Ctrl+N", action: onNewFile },
         { label: "New Window", shortcut: "Ctrl+Shift+N" },
-        { divider: true },
+        divider(),
         { label: "Open File...", shortcut: "Ctrl+O", action: onOpenFile },
         { label: "Open Folder...", shortcut: "Ctrl+K Ctrl+O" },
-        { divider: true },
+        divider(),
         { label: "Save", shortcut: "Ctrl+S", action: onSave },
         { label: "Save As...", shortcut: "Ctrl+Shift+S", action: onSaveAs },
-        { divider: true },
+        divider(),
         { label: "Exit" },
       ],
     },
@@ -79,11 +73,11 @@ export default function MenuBar({
       items: [
         { label: "Undo", shortcut: "Ctrl+Z" },
         { label: "Redo", shortcut: "Ctrl+Y" },
-        { divider: true },
+        divider(),
         { label: "Cut", shortcut: "Ctrl+X" },
         { label: "Copy", shortcut: "Ctrl+C" },
         { label: "Paste", shortcut: "Ctrl+V" },
-        { divider: true },
+        divider(),
         { label: "Find", shortcut: "Ctrl+F" },
         { label: "Replace", shortcut: "Ctrl+H" },
       ],
@@ -94,7 +88,7 @@ export default function MenuBar({
         { label: "Select All", shortcut: "Ctrl+A" },
         { label: "Expand Selection", shortcut: "Shift+Alt+Right" },
         { label: "Shrink Selection", shortcut: "Shift+Alt+Left" },
-        { divider: true },
+        divider(),
         { label: "Copy Line Up", shortcut: "Shift+Alt+Up" },
         { label: "Copy Line Down", shortcut: "Shift+Alt+Down" },
       ],
@@ -103,13 +97,13 @@ export default function MenuBar({
       label: "View",
       items: [
         { label: "Command Palette...", shortcut: "Ctrl+Shift+P" },
-        { divider: true },
+        divider(),
         { label: "Explorer", shortcut: "Ctrl+Shift+E", action: onToggleExplorer },
         { label: "Search", shortcut: "Ctrl+Shift+F" },
         { label: "Source Control", shortcut: "Ctrl+Shift+G" },
-        { divider: true },
+        divider(),
         { label: "Terminal", shortcut: "Ctrl+`", action: onToggleTerminal },
-        { divider: true },
+        divider(),
         { label: "Appearance", action: onAppearance },
         { label: "Editor Layout" },
       ],
@@ -119,7 +113,7 @@ export default function MenuBar({
       items: [
         { label: "Back", shortcut: "Alt+Left" },
         { label: "Forward", shortcut: "Alt+Right" },
-        { divider: true },
+        divider(),
         { label: "Go to File...", shortcut: "Ctrl+P" },
         { label: "Go to Symbol...", shortcut: "Ctrl+Shift+O" },
         { label: "Go to Line/Column...", shortcut: "Ctrl+G" },
@@ -130,9 +124,9 @@ export default function MenuBar({
       items: [
         { label: "Start Debugging", shortcut: "F5" },
         { label: "Run Without Debugging", shortcut: "Ctrl+F5" },
-        { divider: true },
+        divider(),
         { label: "Stop", shortcut: "Shift+F5" },
-        { divider: true },
+        divider(),
         { label: "Step Over", shortcut: "F10" },
         { label: "Step Into", shortcut: "F11" },
         { label: "Step Out", shortcut: "Shift+F11" },
@@ -143,7 +137,7 @@ export default function MenuBar({
       items: [
         { label: "New Terminal", shortcut: "Ctrl+Shift+`" },
         { label: "Split Terminal" },
-        { divider: true },
+        divider(),
         { label: "Run Task..." },
         { label: "Run Build Task...", shortcut: "Ctrl+Shift+B" },
       ],
@@ -153,9 +147,9 @@ export default function MenuBar({
       items: [
         { label: "Welcome" },
         { label: "Documentation" },
-        { divider: true },
+        divider(),
         { label: "Keyboard Shortcuts Reference" },
-        { divider: true },
+        divider(),
         { label: "About" },
       ],
     },
