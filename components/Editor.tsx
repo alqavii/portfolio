@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Copy, Check, ExternalLink } from "lucide-react";
+import { X, Copy, Check, ExternalLink, Github, MoreVertical } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export default function Editor({
   const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showProjectPreview, setShowProjectPreview] = useState(false);
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
 
@@ -200,6 +201,13 @@ export default function Editor({
     }
   }, [activeFile, editorMode, fileSystem, onContentChange]);
 
+  // Reset preview state when switching files
+  useEffect(() => {
+    setShowProjectPreview(false);
+    setIframeError(false);
+    setIframeLoading(true);
+  }, [activeFile]);
+
   const getFileName = (fileId: string) => {
     if (fileId === "alqavi.md") return "alqavi.md";
     if (fileId === "contact.md") return "contact.md";
@@ -226,54 +234,16 @@ export default function Editor({
     return false;
   };
 
-  const getProjectDemoUrl = () => {
+  const getProjectInfo = () => {
     if (!activeFile || !activeFile.startsWith("projects/")) return null;
     const parts = activeFile.split("/");
     if (parts.length === 3 && !activeFile.endsWith("/README.md")) {
       const projectId = parts[1];
-      const project = projectsData.find((p) => p.id === projectId);
-      return project?.demoUrl || null;
+      return projectsData.find((p) => p.id === projectId) || null;
     }
     return null;
   };
 
-  // Reset iframe state when switching files and detect blocking
-  useEffect(() => {
-    setIframeError(false);
-    setIframeLoading(true);
-    
-    const demoUrl = getProjectDemoUrl();
-    if (demoUrl && editorMode === "view") {
-      // Check if iframe is blocked after a short delay
-      const checkIframe = setTimeout(() => {
-        const iframe = document.querySelector('iframe[title="Project Demo"]') as HTMLIFrameElement;
-        if (iframe) {
-          try {
-            // Try to access iframe - if blocked by X-Frame-Options, this might help detect it
-            // But X-Frame-Options blocking is silent, so we use a timeout approach
-            const hasWindow = iframe.contentWindow !== null;
-            // If we can access the window but can't access document, might be blocked
-            if (hasWindow) {
-              try {
-                // Try to access document - will throw if cross-origin (normal) or if blocked
-                const doc = iframe.contentDocument || iframe.contentWindow?.document;
-                // If we get here and doc is null, might indicate blocking
-              } catch (e) {
-                // Cross-origin is normal, not an error
-              }
-            }
-          } catch (e) {
-            // Cross-origin restrictions are normal
-          }
-        }
-        setIframeLoading(false);
-      }, 2000);
-      
-      return () => clearTimeout(checkIframe);
-    } else {
-      setIframeLoading(false);
-    }
-  }, [activeFile, editorMode]);
 
   const handleCopy = async (text: string, id: string) => {
     try {
@@ -324,7 +294,7 @@ export default function Editor({
             </div>
           );
         })}
-        {isEditable() && onToggleEditMode && !getProjectDemoUrl() && (
+        {isEditable() && onToggleEditMode && !getProjectInfo() && (
           <div className="ml-auto px-2 md:px-4">
             <button
               onClick={onToggleEditMode}
@@ -354,39 +324,61 @@ export default function Editor({
             <div className="text-text-tertiary">Loading...</div>
           </div>
         ) : (() => {
-          const demoUrl = getProjectDemoUrl();
-          // Render embedded iframe for project demo files
-          if (demoUrl && editorMode === "view") {
+          const projectInfo = getProjectInfo();
+          // Render iframe for project demo files
+          if (projectInfo && projectInfo.demoUrl && editorMode === "view") {
+            // Show error fallback if iframe fails
             if (iframeError) {
-              // Show fallback UI when iframe fails to load
               return (
                 <div className="w-full h-full bg-base flex items-center justify-center p-8">
-                  <div className="max-w-md text-center space-y-4">
-                    <div className="text-text-tertiary text-lg">
-                      Unable to embed this page
+                  <div className="max-w-2xl w-full space-y-6">
+                    {/* Project Preview Card as fallback */}
+                    <div className="bg-surface-1 border border-surface-2 rounded-lg p-8 space-y-6">
+                      <div className="space-y-2">
+                        <h1 className="text-3xl font-bold text-text-primary">
+                          {projectInfo.displayName || projectInfo.name}
+                        </h1>
+                        {projectInfo.description && (
+                          <p className="text-text-secondary text-lg">
+                            {projectInfo.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-4">
+                        <a
+                          href={projectInfo.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors font-medium"
+                        >
+                          <ExternalLink size={18} />
+                          Open Demo
+                        </a>
+                        {projectInfo.githubUrl && (
+                          <a
+                            href={projectInfo.githubUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-surface-2 hover:bg-surface-0 text-text-secondary hover:text-text-primary rounded-lg transition-colors font-medium border border-surface-2"
+                          >
+                            <Github size={18} />
+                            View on GitHub
+                          </a>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-text-secondary text-sm">
-                      This website has security restrictions that prevent it from being embedded in an iframe. 
-                      Click the button below to open it in a new tab instead.
-                    </p>
-                    <a
-                      href={demoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors"
-                    >
-                      <ExternalLink size={16} />
-                      Open in New Tab
-                    </a>
                   </div>
                 </div>
               );
             }
             
+            // Render iframe
             return (
               <div className="w-full h-full bg-base relative">
                 <iframe
-                  src={demoUrl}
+                  src={projectInfo.demoUrl}
                   className="w-full h-full border-0"
                   title="Project Demo"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -408,7 +400,7 @@ export default function Editor({
                 {/* Fallback button - always visible in corner for easy access */}
                 <div className="absolute top-4 right-4 z-10">
                   <a
-                    href={demoUrl}
+                    href={projectInfo.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-2 bg-surface-1 hover:bg-surface-2 text-text-secondary hover:text-text-primary rounded-lg transition-colors text-sm border border-surface-2"
@@ -418,29 +410,64 @@ export default function Editor({
                     <span className="hidden sm:inline">Open in New Tab</span>
                   </a>
                 </div>
-                {/* Error message overlay */}
-                {iframeError && (
-                  <div className="absolute inset-0 bg-base/95 backdrop-blur-sm flex items-center justify-center p-8">
-                    <div className="max-w-md text-center space-y-4">
-                      <div className="text-text-tertiary text-lg font-semibold">
-                        Unable to embed this page
-                      </div>
-                      <p className="text-text-secondary text-sm">
-                        This website has security restrictions (X-Frame-Options) that prevent it from being embedded. 
-                        Please use the button above or click below to open it in a new tab.
-                      </p>
+              </div>
+            );
+          }
+          
+          // Check if we're viewing a project README and should show preview
+          const isProjectReadme = activeFile?.startsWith("projects/") && activeFile.endsWith("/README.md");
+          const readmeProjectInfo = isProjectReadme ? (() => {
+            const parts = activeFile.split("/");
+            if (parts.length === 3) {
+              const projectId = parts[1];
+              return projectsData.find((p) => p.id === projectId) || null;
+            }
+            return null;
+          })() : null;
+          
+          // If showing preview from README, render preview card
+          if (showProjectPreview && readmeProjectInfo && readmeProjectInfo.demoUrl && editorMode === "view") {
+            return (
+              <div className="w-full h-full bg-base flex items-center justify-center p-8">
+                <div className="max-w-2xl w-full space-y-6">
+                  {/* Project Preview Card */}
+                  <div className="bg-surface-1 border border-surface-2 rounded-lg p-8 space-y-6">
+                    <div className="space-y-2">
+                      <h1 className="text-3xl font-bold text-text-primary">
+                        {readmeProjectInfo.displayName || readmeProjectInfo.name}
+                      </h1>
+                      {readmeProjectInfo.description && (
+                        <p className="text-text-secondary text-lg">
+                          {readmeProjectInfo.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-4">
                       <a
-                        href={demoUrl}
+                        href={readmeProjectInfo.demoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors font-medium"
                       >
-                        <ExternalLink size={16} />
-                        Open in New Tab
+                        <ExternalLink size={18} />
+                        Open Demo
                       </a>
+                      {readmeProjectInfo.githubUrl && (
+                        <a
+                          href={readmeProjectInfo.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-surface-2 hover:bg-surface-0 text-text-secondary hover:text-text-primary rounded-lg transition-colors font-medium border border-surface-2"
+                        >
+                          <Github size={18} />
+                          View on GitHub
+                        </a>
+                      )}
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           }
@@ -464,7 +491,19 @@ export default function Editor({
           
           // Render markdown content (default)
           return (
-            <div className="prose prose-invert max-w-none p-4 md:p-8">
+            <div className="prose prose-invert max-w-none p-4 md:p-8 relative">
+            {/* Menu button for project README */}
+            {isProjectReadme && readmeProjectInfo && readmeProjectInfo.demoUrl && (
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={() => setShowProjectPreview(!showProjectPreview)}
+                  className="w-8 h-8 rounded-full bg-surface-1 hover:bg-surface-2 border border-surface-2 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
+                  title={showProjectPreview ? "Show README" : "Show Project Preview"}
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </div>
+            )}
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               className="markdown-content"
