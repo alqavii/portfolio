@@ -1,0 +1,19 @@
+[
+  {
+    "id": "qtc-quant",
+    "name": "qtc-quant",
+    "displayName": "qtc-quant",
+    "githubUrl": "https://github.com/alqavii/qtc",
+    "demoUrl": "http://qtcq.xyz/",
+    "description": "An example project to demonstrate the portfolio"
+  },
+  {
+    "id": "volsurface",
+    "name": "volsurface",
+    "displayName": "volsurface",
+    "githubUrl": "https://github.com/alqavii/volsurface",
+    "demoUrl": "http://volsurface.xyz/",
+    "description": "An example project to demonstrate the portfolio"
+  }
+]
+
