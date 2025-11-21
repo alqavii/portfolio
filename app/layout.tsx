@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Alqavi - Portfolio",
-  description: "VS Code-themed interactive portfolio",
+  title: "AlQavi's Portfolio",
+  description: "All my projects :)",
   viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 
