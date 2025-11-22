@@ -261,7 +261,18 @@ export default function Editor({
     const parts = activeFile.split("/");
     if (parts.length === 3 && !activeFile.endsWith("/README.md")) {
       const projectId = parts[1];
-      return projectsData.find((p) => p.id === projectId) || null;
+      const project = projectsData.find((p) => p.id === projectId);
+      if (project?.demoUrl) {
+        // Ensure URL uses HTTPS to avoid mixed content errors
+        const url = project.demoUrl;
+        const normalizedUrl = url.startsWith('http://') 
+          ? url.replace('http://', 'https://')
+          : url.startsWith('https://')
+          ? url
+          : `https://${url}`;
+        return { ...project, demoUrl: normalizedUrl };
+      }
+      return project || null;
     }
     return null;
   };
@@ -442,7 +453,18 @@ export default function Editor({
             const parts = activeFile.split("/");
             if (parts.length === 3) {
               const projectId = parts[1];
-              return projectsData.find((p) => p.id === projectId) || null;
+              const project = projectsData.find((p) => p.id === projectId);
+              if (project?.demoUrl) {
+                // Ensure URL uses HTTPS to avoid mixed content errors
+                const url = project.demoUrl;
+                const normalizedUrl = url.startsWith('http://') 
+                  ? url.replace('http://', 'https://')
+                  : url.startsWith('https://')
+                  ? url
+                  : `https://${url}`;
+                return { ...project, demoUrl: normalizedUrl };
+              }
+              return project || null;
             }
             return null;
           })() : null;
