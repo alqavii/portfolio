@@ -120,55 +120,55 @@ export default function Editor({
       if (activeFile.startsWith("projects/") && activeFile.endsWith("/README.md")) {
         const projectId = activeFile.split("/")[1];
         const project = projectsData.find((p) => p.id === projectId);
-        if (project && project.githubUrl) {
-          setLoading(true);
-          try {
-            // Convert GitHub URL to raw README URL
-            const repoUrl = project.githubUrl.replace("github.com", "raw.githubusercontent.com");
-            
-            // Try main branch first
-            let readmeUrl = `${repoUrl}/main/README.md`;
-            let response = await fetch(readmeUrl, {
+      if (project && project.githubUrl) {
+        setLoading(true);
+        try {
+          // Convert GitHub URL to raw README URL
+          const repoUrl = project.githubUrl.replace("github.com", "raw.githubusercontent.com");
+          
+          // Try main branch first
+          let readmeUrl = `${repoUrl}/main/README.md`;
+          let response = await fetch(readmeUrl, {
+            method: "GET",
+            headers: {
+              Accept: "text/plain",
+            },
+          });
+          
+          if (!response.ok) {
+            // Try master branch if main doesn't work
+            readmeUrl = `${repoUrl}/master/README.md`;
+            response = await fetch(readmeUrl, {
               method: "GET",
               headers: {
                 Accept: "text/plain",
               },
             });
-            
-            if (!response.ok) {
-              // Try master branch if main doesn't work
-              readmeUrl = `${repoUrl}/master/README.md`;
-              response = await fetch(readmeUrl, {
-                method: "GET",
-                headers: {
-                  Accept: "text/plain",
-                },
-              });
+          }
+          
+          if (response.ok) {
+            const text = await response.text();
+            setContent(text || `# ${project.displayName}\n\n${project.description || "No README content."}`);
+            if (onContentChange) {
+              onContentChange(text || "");
             }
-            
-            if (response.ok) {
-              const text = await response.text();
-              setContent(text || `# ${project.displayName}\n\n${project.description || "No README content."}`);
-              if (onContentChange) {
-                onContentChange(text || "");
-              }
-            } else {
-              const errorContent = `# ${project.displayName}\n\n${project.description || "No README available."}\n\n**Note**: Could not fetch README from GitHub. Please check the repository URL.`;
-              setContent(errorContent);
-              if (onContentChange) {
-                onContentChange("");
-              }
-            }
-          } catch (error) {
-            const errorContent = `# ${project.displayName}\n\n${project.description || "Failed to load README from GitHub."}\n\n**Error**: ${error instanceof Error ? error.message : "Unknown error"}`;
+          } else {
+            const errorContent = `# ${project.displayName}\n\n${project.description || "No README available."}\n\n**Note**: Could not fetch README from GitHub. Please check the repository URL.`;
             setContent(errorContent);
             if (onContentChange) {
               onContentChange("");
             }
-          } finally {
-            setLoading(false);
           }
-          return;
+        } catch (error) {
+          const errorContent = `# ${project.displayName}\n\n${project.description || "Failed to load README from GitHub."}\n\n**Error**: ${error instanceof Error ? error.message : "Unknown error"}`;
+          setContent(errorContent);
+          if (onContentChange) {
+            onContentChange("");
+          }
+        } finally {
+          setLoading(false);
+        }
+        return;
         }
       }
 
@@ -207,6 +207,28 @@ export default function Editor({
     setIframeError(false);
     setIframeLoading(true);
   }, [activeFile]);
+
+  // Prevent scrolling when preview card is open
+  useEffect(() => {
+    if (showProjectPreview) {
+      // Store the current scroll position
+      const scrollY = window.scrollY;
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      // Prevent editor content scroll by storing scroll position
+      const editorContent = document.querySelector('.flex-1.overflow-y-auto');
+      if (editorContent) {
+        (editorContent as HTMLElement).style.overflow = 'hidden';
+      }
+      
+      return () => {
+        document.body.style.overflow = '';
+        if (editorContent) {
+          (editorContent as HTMLElement).style.overflow = '';
+        }
+      };
+    }
+  }, [showProjectPreview]);
 
   const getFileName = (fileId: string) => {
     if (fileId === "alqavi.md") return "alqavi.md";
@@ -318,7 +340,7 @@ export default function Editor({
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className={cn("flex-1 overflow-y-auto scrollbar-thin relative", showProjectPreview && "overflow-hidden")}>
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-text-tertiary">Loading...</div>
@@ -425,72 +447,87 @@ export default function Editor({
             return null;
           })() : null;
           
-          // If showing preview from README, render preview card
-          if (showProjectPreview && readmeProjectInfo && readmeProjectInfo.demoUrl && editorMode === "view") {
-            return (
-              <div className="w-full h-full bg-base flex items-center justify-center p-8">
-                <div className="max-w-2xl w-full space-y-6">
-                  {/* Project Preview Card */}
-                  <div className="bg-surface-1 border border-surface-2 rounded-lg p-8 space-y-6">
-                    <div className="space-y-2">
-                      <h1 className="text-3xl font-bold text-text-primary">
-                        {readmeProjectInfo.displayName || readmeProjectInfo.name}
-                      </h1>
-                      {readmeProjectInfo.description && (
-                        <p className="text-text-secondary text-lg">
-                          {readmeProjectInfo.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-4">
-                      <a
-                        href={readmeProjectInfo.demoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors font-medium"
-                      >
-                        <ExternalLink size={18} />
-                        Open Demo
-                      </a>
-                      {readmeProjectInfo.githubUrl && (
-                        <a
-                          href={readmeProjectInfo.githubUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-surface-2 hover:bg-surface-0 text-text-secondary hover:text-text-primary rounded-lg transition-colors font-medium border border-surface-2"
-                        >
-                          <Github size={18} />
-                          View on GitHub
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
+          // Don't return early if showing preview - we'll render it as overlay
           
           // Render edit mode for editable files
           if (editorMode === "edit" && isEditable()) {
             return (
-              <textarea
-                value={editedContent}
-                onChange={(e) => {
-                  if (onContentChange) {
-                    onContentChange(e.target.value);
-                  }
-                }}
-                className="w-full h-full bg-base text-text-primary font-mono text-sm p-4 md:p-8 outline-none resize-none"
-                placeholder="Start typing..."
-                spellCheck={false}
-              />
+          <textarea
+            value={editedContent}
+            onChange={(e) => {
+              if (onContentChange) {
+                onContentChange(e.target.value);
+              }
+            }}
+            className="w-full h-full bg-base text-text-primary font-mono text-sm p-4 md:p-8 outline-none resize-none"
+            placeholder="Start typing..."
+            spellCheck={false}
+          />
             );
           }
           
           // Render markdown content (default)
           return (
+            <>
+            {/* Preview card overlay - fixed to editor viewport center */}
+            {showProjectPreview && readmeProjectInfo && readmeProjectInfo.demoUrl && (
+              <div 
+                className="absolute inset-0 z-50 flex items-center justify-center p-4"
+                onClick={() => setShowProjectPreview(false)}
+              >
+                {/* Blurred backdrop */}
+                <div className="absolute inset-0 bg-base/80 backdrop-blur-sm" />
+                {/* Preview card */}
+                <div 
+                  className="relative max-w-2xl w-full bg-surface-1 border border-surface-2 rounded-lg p-8 space-y-6 shadow-2xl z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-text-primary">
+                      {readmeProjectInfo.displayName || readmeProjectInfo.name}
+                    </h1>
+                    {readmeProjectInfo.description && (
+                      <p className="text-text-secondary text-lg">
+                        {readmeProjectInfo.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-4">
+                    <a
+                      href={readmeProjectInfo.demoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue text-base rounded-lg hover:bg-blue-light transition-colors font-medium"
+                    >
+                      <ExternalLink size={18} />
+                      Open Demo
+                    </a>
+                    {readmeProjectInfo.githubUrl && (
+                      <a
+                        href={readmeProjectInfo.githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-surface-2 hover:bg-surface-0 text-text-secondary hover:text-text-primary rounded-lg transition-colors font-medium border border-surface-2"
+                      >
+                        <Github size={18} />
+                        View on GitHub
+                      </a>
+                    )}
+                  </div>
+                  
+                  {/* Close button */}
+                  <button
+                    onClick={() => setShowProjectPreview(false)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-surface-2 hover:bg-surface-0 border border-surface-2 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="prose prose-invert max-w-none p-4 md:p-8 relative">
             {/* Menu button for project README */}
             {isProjectReadme && readmeProjectInfo && readmeProjectInfo.demoUrl && (
@@ -498,7 +535,7 @@ export default function Editor({
                 <button
                   onClick={() => setShowProjectPreview(!showProjectPreview)}
                   className="w-8 h-8 rounded-full bg-surface-1 hover:bg-surface-2 border border-surface-2 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors"
-                  title={showProjectPreview ? "Show README" : "Show Project Preview"}
+                  title="Show Project Preview"
                 >
                   <MoreVertical size={16} />
                 </button>
@@ -604,12 +641,12 @@ export default function Editor({
                     );
                   }
                   return (
-                    <a
-                      className="text-blue hover:text-blue-light underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  <a
+                    className="text-blue hover:text-blue-light underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
                       href={href}
-                      {...props}
+                    {...props}
                     >
                       {children}
                     </a>
@@ -635,6 +672,7 @@ export default function Editor({
               {displayContent}
             </ReactMarkdown>
           </div>
+          </>
           );
         })()}
       </div>

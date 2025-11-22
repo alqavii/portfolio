@@ -5,7 +5,7 @@
     "displayName": "qtc-quant",
     "githubUrl": "https://github.com/alqavii/qtc",
     "demoUrl": "https://qtcq.xyz/",
-    "description": "An example project to demonstrate the portfolio"
+    "description": "Trading platform for QT Capital Alpha"
   },
   {
     "id": "volsurface",
