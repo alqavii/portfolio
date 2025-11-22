@@ -450,7 +450,7 @@ export default function Editor({
           // Check if we're viewing a project README and should show preview
           const isProjectReadme = activeFile?.startsWith("projects/") && activeFile.endsWith("/README.md");
           const readmeProjectInfo = isProjectReadme ? (() => {
-            const parts = activeFile.split("/");
+            const parts = activeFile?.split("/") || [];
             if (parts.length === 3) {
               const projectId = parts[1];
               const project = projectsData.find((p) => p.id === projectId);
