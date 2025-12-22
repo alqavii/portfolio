@@ -12,8 +12,8 @@
     "name": "ssvi-surface",
     "displayName": "ssvi-surface",
     "githubUrl": "https://github.com/alqavii/ssvi-surface",
-    "demoUrl": "https://alqavii.github.io/ssvi-surface/",
-    "description": "An example project to demonstrate the portfolio"
+    "demoUrl": "https://ssvi-surface.streamlit.app/",
+    "description": "SSVI Calibration and Visualization Tool"
   }
 ]
 
