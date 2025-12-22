@@ -8,11 +8,11 @@
     "description": "Trading platform for QT Capital Alpha"
   },
   {
-    "id": "volsurface",
-    "name": "volsurface",
-    "displayName": "volsurface",
-    "githubUrl": "https://github.com/alqavii/volsurface",
-    "demoUrl": "https://volsurface.onrender.com",
+    "id": "ssvi-surface",
+    "name": "ssvi-surface",
+    "displayName": "ssvi-surface",
+    "githubUrl": "https://github.com/alqavii/ssvi-surface",
+    "demoUrl": "https://alqavii.github.io/ssvi-surface/",
     "description": "An example project to demonstrate the portfolio"
   }
 ]
