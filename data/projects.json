@@ -10,17 +10,17 @@
   {
     "id": "qtc-quant",
     "name": "qtc-quant",
-    "displayName": "qtc-quant",
+    "displayName": "qtc-quant — Multi-Team Quant Trading Platform",
     "githubUrl": "https://github.com/alqavii/qtc",
-    "demoUrl": "https://qtcq.xyz/",
-    "description": "Trading platform for QT Capital Alpha"
+    "demoUrl": "/demos/qtc",
+    "description": "Production quantitative trading competition platform for QT Capital Alpha. Real-time execution pipeline, team leaderboard, and MDI workstation."
   },
   {
     "id": "ssvi-surface",
     "name": "ssvi-surface",
-    "displayName": "ssvi-surface",
+    "displayName": "ssvi-surface — 3D Volatility Surface Calibration",
     "githubUrl": "https://github.com/alqavii/ssvi-surface",
-    "demoUrl": "https://ssvi-surface.streamlit.app?embed=true",
-    "description": "SSVI Calibration and Visualization Tool"
+    "demoUrl": "/demos/ssvi",
+    "description": "Surface SVI (SSVI) parametric implied volatility surface calibration engine with 3D WebGL visualization and arbitrage diagnostics."
   }
 ]

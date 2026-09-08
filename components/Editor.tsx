@@ -210,7 +210,9 @@ export default function Editor({
       const project = projectsData.find((p) => p.id === projectId);
       if (project?.demoUrl) {
         const url = project.demoUrl;
-        const normalizedUrl = url.startsWith("http://") 
+        const normalizedUrl = url.startsWith("/")
+          ? url
+          : url.startsWith("http://") 
           ? url.replace("http://", "https://")
           : url.startsWith("https://")
           ? url
@@ -388,7 +390,11 @@ export default function Editor({
                 {/* Embedded URL address pill */}
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-surface-1 rounded border border-border text-[11px] text-text-secondary flex-1 max-w-xl truncate">
                   <Lock size={10} className="text-green flex-shrink-0" />
-                  <span className="truncate select-text">{projectInfo.demoUrl}</span>
+                  <span className="truncate select-text">
+                    {projectInfo.demoUrl.startsWith("/") 
+                      ? `https://www.alqavi.xyz${projectInfo.demoUrl}` 
+                      : projectInfo.demoUrl}
+                  </span>
                 </div>
               </div>
 
