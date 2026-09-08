@@ -123,7 +123,7 @@ export default function MenuBar({
   ];
 
   return (
-    <div className="h-9 bg-surface-0 border-b border-surface-2 flex items-center justify-between px-3 select-none text-xs font-mono z-30">
+    <div className="h-9 bg-surface-0 border-b border-border flex items-center justify-between px-3 select-none text-xs font-mono z-30">
       {/* Left: VS Code Menu Items */}
       <div ref={menuRef} className="flex items-center gap-1">
         {/* Mobile menu trigger */}
@@ -159,10 +159,10 @@ export default function MenuBar({
 
               {/* Dropdown menu */}
               {activeMenu === menu.label && (
-                <div className="absolute left-0 top-full mt-1 min-w-[200px] bg-surface-1 border border-surface-3 rounded-lg shadow-2xl py-1 z-50 text-xs">
+                <div className="absolute left-0 top-full mt-1 min-w-[200px] bg-surface-1 border border-border rounded shadow-xl py-1 z-50 text-xs">
                   {menu.items.map((item, idx) => {
                     if (item.divider) {
-                      return <div key={idx} className="my-1 border-t border-surface-2" />;
+                      return <div key={idx} className="my-1 border-t border-border" />;
                     }
                     return (
                       <button
@@ -193,14 +193,14 @@ export default function MenuBar({
       <div className="flex-1 max-w-md mx-2 md:mx-4">
         <button
           onClick={onOpenCommandPalette}
-          className="w-full flex items-center justify-between px-3 py-1 rounded-md bg-surface-1 hover:bg-surface-2 border border-surface-2 hover:border-blue/50 text-text-tertiary hover:text-text-secondary transition-all shadow-inner group"
+          className="w-full flex items-center justify-between px-3 py-1 rounded-md bg-surface-1 hover:bg-surface-2/60 border border-border hover:border-blue/40 text-text-tertiary hover:text-text-secondary transition-all group"
           title="Search files, projects & commands (Ctrl+K)"
         >
           <div className="flex items-center gap-2 truncate">
             <Search size={13} className="text-text-tertiary group-hover:text-blue transition-colors" />
             <span className="text-xs truncate">alqavi-portfolio — Search files & projects...</span>
           </div>
-          <kbd className="hidden sm:inline px-1.5 py-0.2 rounded bg-surface-2 text-[10px] border border-surface-3 text-text-secondary">
+          <kbd className="hidden sm:inline px-1.5 py-0.2 rounded bg-surface-2 text-[10px] border border-border text-text-secondary">
             Ctrl K
           </kbd>
         </button>
@@ -212,7 +212,7 @@ export default function MenuBar({
         <div ref={themeRef} className="relative">
           <button
             onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
-            className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 text-text-secondary hover:text-text-primary border border-surface-2 transition-colors text-xs"
+            className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 text-text-secondary hover:text-text-primary border border-border transition-colors text-xs"
             title="Change Theme"
           >
             <Palette size={13} className="text-mauve" />
@@ -221,7 +221,7 @@ export default function MenuBar({
           </button>
 
           {themeDropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 w-64 bg-surface-1 border border-surface-3 rounded-lg shadow-2xl p-1.5 z-50 text-xs">
+            <div className="absolute right-0 top-full mt-1 w-64 bg-surface-1 border border-border rounded shadow-xl p-1.5 z-50 text-xs">
               <span className="text-[10px] uppercase font-bold text-text-tertiary px-2 py-1 block">
                 Select Theme
               </span>

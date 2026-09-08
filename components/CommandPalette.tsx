@@ -218,12 +218,12 @@ export default function CommandPalette({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-surface-0 border border-surface-3 rounded-xl shadow-2xl overflow-hidden font-mono text-text-primary"
+        className="w-full max-w-2xl bg-surface-0 border border-border rounded-lg shadow-2xl overflow-hidden font-mono text-text-primary"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search input bar */}
-        <div className="flex items-center px-4 py-3 border-b border-surface-2 gap-3 bg-surface-1">
+        <div className="flex items-center px-4 py-3 border-b border-border gap-3 bg-surface-1">
           <Search size={18} className="text-blue flex-shrink-0" />
           <input
             ref={inputRef}
@@ -286,7 +286,7 @@ export default function CommandPalette({
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center justify-between px-4 py-2 border-t border-surface-2 bg-surface-1/50 text-[11px] text-text-tertiary">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-surface-1/50 text-[11px] text-text-tertiary">
           <div className="flex items-center gap-3">
             <span>↑↓ to navigate</span>
             <span>↵ to select</span>

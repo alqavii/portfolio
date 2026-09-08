@@ -86,7 +86,12 @@ const config: Config = {
           DEFAULT: "#f5e0dc",
         },
         themeBorder: "var(--theme-border)",
+        border: "var(--theme-border)",
         accent: "var(--theme-accent)",
+      },
+      borderColor: {
+        DEFAULT: "var(--theme-border)",
+        border: "var(--theme-border)",
       },
       fontFamily: {
         mono: [

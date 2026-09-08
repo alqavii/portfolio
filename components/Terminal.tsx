@@ -280,13 +280,13 @@ const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
       <div
         ref={ref}
         className={cn(
-          "bg-surface-0 border-t border-surface-2 flex flex-col font-mono select-none",
+          "bg-surface-0 border-t border-border flex flex-col font-mono select-none",
           isCollapsed ? "h-8 transition-all duration-300" : ""
         )}
         style={!isCollapsed ? { height: `${height}px` } : undefined}
       >
         {/* Terminal Header Bar */}
-        <div className="flex items-center justify-between px-3 py-1 bg-surface-1/70 border-b border-surface-2">
+        <div className="flex items-center justify-between px-3 py-1 bg-surface-1/70 border-b border-border">
           <div className="flex items-center gap-2">
             <TerminalIcon size={13} className="text-yellow" />
             <span className="text-[11px] font-bold text-text-secondary">QUANT TERMINAL</span>
@@ -300,7 +300,7 @@ const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
                 <button
                   key={s}
                   onClick={() => handleCommand(s)}
-                  className="px-2 py-0.5 rounded bg-surface-2/60 hover:bg-surface-3 text-[10px] text-text-secondary hover:text-text-primary transition-colors border border-surface-2"
+                  className="px-2 py-0.5 rounded bg-surface-2/60 hover:bg-surface-3 text-[10px] text-text-secondary hover:text-text-primary transition-colors border border-border"
                 >
                   {s}
                 </button>

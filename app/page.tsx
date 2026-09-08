@@ -341,7 +341,7 @@ export default function Home() {
         {/* Desktop Sidebar Resizer */}
         {activeView && (
           <div
-            className="hidden md:block w-1 cursor-col-resize hover:bg-blue/40 transition-colors flex-shrink-0 bg-surface-2/40"
+            className="hidden md:block w-[1px] cursor-col-resize hover:bg-blue/60 transition-colors flex-shrink-0 bg-border"
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.clientX;
@@ -403,7 +403,7 @@ export default function Home() {
           {/* Terminal Vertical Resizer */}
           {!terminalCollapsed && (
             <div
-              className="h-1 cursor-row-resize hover:bg-blue/40 transition-colors flex-shrink-0 bg-surface-2/40"
+              className="h-[1px] cursor-row-resize hover:bg-blue/60 transition-colors flex-shrink-0 bg-border"
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startY = e.clientY;

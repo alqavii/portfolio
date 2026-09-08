@@ -36,7 +36,7 @@ export default function StatusBar({
   };
 
   return (
-    <footer className="h-6 bg-surface-0 border-t border-surface-2/60 text-text-tertiary text-[11px] font-mono flex items-center justify-between px-2 select-none z-20">
+    <footer className="h-6 bg-surface-0 border-t border-border text-text-tertiary text-[11px] font-mono flex items-center justify-between px-2 select-none z-20">
       {/* Left items */}
       <div className="flex items-center gap-2 md:gap-3">
         {/* Git branch */}
@@ -44,7 +44,7 @@ export default function StatusBar({
           href="https://github.com/alqavii"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer px-1.5 py-0.5 rounded hover:bg-surface-2"
+          className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer px-1.5 py-0.5 rounded hover:bg-surface-1"
           title="Source Control: main branch"
         >
           <GitBranch size={12} className="text-blue" />

@@ -28,12 +28,12 @@ export default function ActivityBar({
     { id: "explorer", icon: Folder, label: "Explorer (Files & Projects)" },
     { id: "search", icon: Search, label: "Search across Portfolio" },
     { id: "git", icon: GitBranch, label: "Source Control (GitHub Repos)" },
-    { id: "debug", icon: Play, label: "Run & Debug (Project Launcher)" },
-    { id: "extensions", icon: Box, label: "Skills & Tech Stack (Extensions)" },
+    { id: "debug", icon: Play, label: "Run and Debug" },
+    { id: "extensions", icon: Box, label: "Extensions (Skills & Tech Stack)" },
   ];
 
   return (
-    <div className="w-12 bg-surface-0 flex flex-col items-center py-2 border-r border-surface-2/60 h-full select-none z-20">
+    <div className="w-12 bg-surface-0 flex flex-col items-center py-2 border-r border-border h-full select-none z-20">
       {/* Top Activity Items */}
       <div className="flex flex-col items-center gap-1 w-full">
         {items.map((item) => {
