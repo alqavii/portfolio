@@ -1,5 +1,13 @@
 [
   {
+    "id": "petral",
+    "name": "petral",
+    "displayName": "Petral — Crude Oil Trading Desk Dashboard",
+    "githubUrl": "https://github.com/alqavii/petral",
+    "demoUrl": "https://petral.xyz",
+    "description": "A reliable, sourced and proxy-labelled aggregation and synthesis dashboard for physical crude trading desks. Descriptive and diagnostic analytics: levels, spreads, z-scores, carry framing, and Nelson-Siegel curves."
+  },
+  {
     "id": "qtc-quant",
     "name": "qtc-quant",
     "displayName": "qtc-quant",
@@ -16,4 +24,3 @@
     "description": "SSVI Calibration and Visualization Tool"
   }
 ]
-

@@ -9,11 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Catppuccin Mocha Theme
         base: {
-          DEFAULT: "#1e1e2e",
-          "50": "#45475a",
-          "100": "#585b70",
+          DEFAULT: "var(--theme-base)",
+          "50": "var(--theme-surface-3)",
+          "100": "var(--theme-surface-4)",
           "200": "#6c7086",
           "300": "#7f849c",
           "400": "#9399b2",
@@ -24,75 +23,105 @@ const config: Config = {
           "900": "#f9e2af",
         },
         surface: {
-          DEFAULT: "#313244",
-          "0": "#181825", // Mantle - darkest, for sidebars
-          "1": "#1e1e2e", // Base - main background
-          "2": "#313244", // Surface0 - panels
-          "3": "#45475a", // Surface1 - hover states
-          "4": "#585b70", // Surface2 - active states
+          DEFAULT: "var(--theme-surface-2)",
+          "0": "var(--theme-surface-0)",
+          "1": "var(--theme-surface-1)",
+          "2": "var(--theme-surface-2)",
+          "3": "var(--theme-surface-3)",
+          "4": "var(--theme-surface-4)",
         },
         overlay: {
-          DEFAULT: "#6c7086",
-          "0": "#6c7086",
-          "1": "#7f849c",
-          "2": "#9399b2",
+          DEFAULT: "var(--theme-text-tertiary)",
+          "0": "var(--theme-text-tertiary)",
+          "1": "var(--theme-text-secondary)",
+          "2": "var(--theme-text-primary)",
         },
         text: {
-          DEFAULT: "#cdd6f4",
-          "primary": "#cdd6f4",
-          "secondary": "#bac2de",
-          "tertiary": "#a6adc8",
+          DEFAULT: "var(--theme-text-primary)",
+          primary: "var(--theme-text-primary)",
+          secondary: "var(--theme-text-secondary)",
+          tertiary: "var(--theme-text-tertiary)",
         },
         blue: {
-          DEFAULT: "#89b4fa",
-          light: "#b4befe",
+          DEFAULT: "var(--theme-blue)",
+          light: "var(--theme-blue-light)",
         },
         lavender: {
-          DEFAULT: "#b4befe",
+          DEFAULT: "var(--theme-blue-light)",
         },
         sapphire: {
-          DEFAULT: "#74c7ec",
+          DEFAULT: "var(--theme-blue)",
         },
         sky: {
-          DEFAULT: "#89dceb",
+          DEFAULT: "var(--theme-blue-light)",
         },
         teal: {
-          DEFAULT: "#94e2d5",
+          DEFAULT: "var(--theme-green)",
         },
         green: {
-          DEFAULT: "#a6e3a1",
+          DEFAULT: "var(--theme-green)",
         },
         yellow: {
-          DEFAULT: "#f9e2af",
+          DEFAULT: "var(--theme-yellow)",
         },
         peach: {
-          DEFAULT: "#fab387",
+          DEFAULT: "var(--theme-peach)",
         },
         maroon: {
-          DEFAULT: "#eba0ac",
+          DEFAULT: "var(--theme-red)",
         },
         red: {
-          DEFAULT: "#f38ba8",
+          DEFAULT: "var(--theme-red)",
         },
         mauve: {
-          DEFAULT: "#cba6f7",
+          DEFAULT: "var(--theme-mauve)",
         },
         pink: {
-          DEFAULT: "#f5c2e7",
+          DEFAULT: "var(--theme-mauve)",
         },
         flamingo: {
-          DEFAULT: "#f2cdcd",
+          DEFAULT: "var(--theme-peach)",
         },
         rosewater: {
           DEFAULT: "#f5e0dc",
         },
+        themeBorder: "var(--theme-border)",
+        accent: "var(--theme-accent)",
       },
       fontFamily: {
-        mono: ["var(--font-mono)", "monospace"],
+        mono: [
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "'Liberation Mono'",
+          "'Courier New'",
+          "monospace",
+        ],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
+      },
+      animation: {
+        "pulse-subtle": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "glow": "glow 2s ease-in-out infinite alternate",
+      },
+      keyframes: {
+        glow: {
+          "0%": { boxShadow: "0 0 5px rgba(56, 189, 248, 0.2)" },
+          "100%": { boxShadow: "0 0 15px rgba(56, 189, 248, 0.5)" },
+        },
       },
     },
   },
   plugins: [],
 };
-export default config;
 
+export default config;

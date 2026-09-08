@@ -1,21 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Folder } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Folder, Command } from "lucide-react";
 import ActivityBar from "@/components/ActivityBar";
 import Sidebar from "@/components/Sidebar";
 import Editor from "@/components/Editor";
 import Terminal from "@/components/Terminal";
 import MenuBar from "@/components/MenuBar";
+import StatusBar from "@/components/StatusBar";
+import CommandPalette from "@/components/CommandPalette";
 import { FileSystem, FileSystemFile } from "@/lib/fileSystem";
 
 export default function Home() {
   const [activeView, setActiveView] = useState("explorer");
-  const [openFiles, setOpenFiles] = useState<string[]>(["alqavi.md"]);
+  const [openFiles, setOpenFiles] = useState<string[]>([
+    "alqavi.md",
+    "projects/petral/README.md"
+  ]);
   const [activeFile, setActiveFile] = useState<string | null>("alqavi.md");
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
-  const [terminalHeight, setTerminalHeight] = useState(256);
-  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [terminalHeight, setTerminalHeight] = useState(240);
+  const [sidebarWidth, setSidebarWidth] = useState(260);
   const [fileSystem] = useState(() => new FileSystem());
   const [customFiles, setCustomFiles] = useState<FileSystemFile[]>([]);
   const [editorMode, setEditorMode] = useState<"view" | "edit">("view");
@@ -23,9 +28,33 @@ export default function Home() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [activeTheme, setActiveTheme] = useState("oled");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Load saved theme from localStorage if available
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem("alqavi_portfolio_theme");
+      if (savedTheme) {
+        setActiveTheme(savedTheme);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSetTheme = (theme: string) => {
+    setActiveTheme(theme);
+    try {
+      localStorage.setItem("alqavi_portfolio_theme", theme);
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -36,12 +65,10 @@ export default function Home() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleFileClick = (file: string) => {
+  const handleFileClick = useCallback((file: string) => {
     setActiveFile(file);
-    if (!openFiles.includes(file)) {
-      setOpenFiles([...openFiles, file]);
-    }
-  };
+    setOpenFiles((prev) => (prev.includes(file) ? prev : [...prev, file]));
+  }, []);
 
   const handleProjectClick = (fileId: string) => {
     handleFileClick(fileId);
@@ -59,16 +86,16 @@ export default function Home() {
     setActiveFile(file);
   };
 
-  const handleNewFile = () => {
-    const fileName = prompt("Enter file name (e.g., newfile.txt or newfile.md):");
+  const handleNewFile = useCallback(() => {
+    const fileName = prompt("Enter file name (e.g., notes.md or strategy.py):");
     if (fileName && fileName.trim()) {
       const file = fileSystem.createFile(fileName.trim());
-      setCustomFiles([...customFiles, file]);
+      setCustomFiles((prev) => [...prev, file]);
       handleFileClick(file.id);
       setEditorMode("edit");
       setEditedContent(file.content);
     }
-  };
+  }, [fileSystem, handleFileClick]);
 
   const handleOpenFile = () => {
     fileInputRef.current?.click();
@@ -81,7 +108,7 @@ export default function Home() {
       reader.onload = (event) => {
         const content = event.target?.result as string;
         const fsFile = fileSystem.createFile(file.name, content);
-        setCustomFiles([...customFiles, fsFile]);
+        setCustomFiles((prev) => [...prev, fsFile]);
         handleFileClick(fsFile.id);
         setEditorMode("edit");
         setEditedContent(content);
@@ -90,33 +117,6 @@ export default function Home() {
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-  };
-
-  const handleSave = () => {
-    if (!activeFile) return;
-    
-    const fsFile = fileSystem.getFile(activeFile);
-    if (fsFile) {
-      fileSystem.updateFile(activeFile, editedContent);
-      setCustomFiles(customFiles.map(f => f.id === activeFile ? fileSystem.getFile(activeFile)! : f));
-      alert("File saved!");
-    } else if (activeFile === "alqavi.md") {
-      // For alqavi.md, download it
-      downloadFile("alqavi.md", editedContent || "");
-    } else if (activeFile === "contact.md") {
-      // For contact.md, download it
-      downloadFile("contact.md", editedContent || "");
-    }
-  };
-
-  const handleSaveAs = () => {
-    if (!activeFile) return;
-    
-    const fileName = prompt("Enter file name:");
-    if (fileName && fileName.trim()) {
-      const content = editedContent || "";
-      downloadFile(fileName.trim(), content);
     }
   };
 
@@ -132,45 +132,73 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const handleSave = useCallback(() => {
+    if (!activeFile) return;
+    
+    const fsFile = fileSystem.getFile(activeFile);
+    if (fsFile) {
+      fileSystem.updateFile(activeFile, editedContent);
+      setCustomFiles((prev) =>
+        prev.map((f) => (f.id === activeFile ? fileSystem.getFile(activeFile)! : f))
+      );
+      alert("File saved!");
+    } else if (activeFile === "alqavi.md") {
+      downloadFile("alqavi.md", editedContent || "");
+    } else if (activeFile === "contact.md") {
+      downloadFile("contact.md", editedContent || "");
+    }
+  }, [activeFile, editedContent, fileSystem]);
+
+  const handleSaveAs = () => {
+    if (!activeFile) return;
+    const fileName = prompt("Enter file name:");
+    if (fileName && fileName.trim()) {
+      const content = editedContent || "";
+      downloadFile(fileName.trim(), content);
+    }
+  };
+
   const handleToggleEditMode = () => {
     if (editorMode === "view") {
       setEditorMode("edit");
-      // Load current content into edit mode based on file type
       if (!activeFile) {
         setEditedContent("");
         return;
       }
 
-      // Check if it's a custom file
       const fsFile = fileSystem.getFile(activeFile);
       if (fsFile) {
         setEditedContent(fsFile.content);
         return;
       }
 
-      // If it's alqavi.md, load from API
       if (activeFile === "alqavi.md") {
         fetch("/api/alqavi")
-          .then(res => res.json())
-          .then(data => setEditedContent(data.content))
+          .then((res) => res.json())
+          .then((data) => setEditedContent(data.content))
           .catch(() => setEditedContent(""));
         return;
       }
 
-      // If it's contact.md, load from API
       if (activeFile === "contact.md") {
         fetch("/api/contact")
-          .then(res => res.json())
-          .then(data => setEditedContent(data.content))
+          .then((res) => res.json())
+          .then((data) => setEditedContent(data.content))
           .catch(() => setEditedContent(""));
         return;
       }
 
-      // For projects, we can't edit them
+      if (activeFile.includes("petral")) {
+        fetch("/api/petral")
+          .then((res) => res.json())
+          .then((data) => setEditedContent(data.content))
+          .catch(() => setEditedContent(""));
+        return;
+      }
+
       setEditedContent("");
     } else {
       setEditorMode("view");
-      // When switching back to view, reload the content
       setEditedContent("");
     }
   };
@@ -181,35 +209,27 @@ export default function Home() {
       setEditorMode("view");
       setEditedContent("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFile]);
+  }, [activeFile]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleAppearance = () => {
-    const themes = [
-      "Catppuccin Mocha (Current)",
-      "Catppuccin Latte",
-      "Catppuccin Frappé",
-      "Catppuccin Macchiato",
-    ];
-    const choice = prompt(
-      `Appearance Settings\n\nAvailable themes:\n${themes.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\nEnter theme number (1-4):`
-    );
-    if (choice) {
-      const themeNum = parseInt(choice);
-      if (themeNum >= 1 && themeNum <= 4) {
-        alert(`Theme "${themes[themeNum - 1]}" selected!\n\nNote: Currently only Catppuccin Mocha is implemented. Other themes coming soon!`);
-      }
-    }
-  };
-
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Ctrl+P for Command Palette
+      if (e.ctrlKey && (e.key === "k" || e.key === "p")) {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+      // Ctrl+` for Terminal toggle
+      if (e.ctrlKey && e.key === "`") {
+        e.preventDefault();
+        setTerminalCollapsed((prev) => !prev);
+      }
       // Ctrl+S to save
       if (e.ctrlKey && e.key === "s") {
         e.preventDefault();
         handleSave();
       }
-      // Ctrl+N to new file
+      // Ctrl+N for new file
       if (e.ctrlKey && e.key === "n") {
         e.preventDefault();
         handleNewFile();
@@ -223,50 +243,61 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeFile, editedContent]);
+  }, [handleSave, handleNewFile]);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-base">
+    <div 
+      data-theme={activeTheme}
+      className="h-screen w-screen flex flex-col overflow-hidden bg-base text-text-primary font-mono select-none"
+    >
       {/* Menu Bar */}
       <MenuBar
         onNewFile={handleNewFile}
         onOpenFile={handleOpenFile}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
-        onAppearance={handleAppearance}
+        onAppearance={() => setCommandPaletteOpen(true)}
         onToggleTerminal={() => setTerminalCollapsed(!terminalCollapsed)}
         onToggleExplorer={() => {
-          setActiveView(activeView === "explorer" ? "" : "explorer");
+          setActiveView(activeView ? "" : "explorer");
           setMobileSidebarOpen(!mobileSidebarOpen);
         }}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+        onSetTheme={handleSetTheme}
+        activeTheme={activeTheme}
         mobileMenuOpen={mobileMenuOpen}
         onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
+
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
         onChange={handleFileUpload}
-        accept=".txt,.md,.js,.ts,.tsx,.jsx,.json,.css,.html"
+        accept=".txt,.md,.js,.ts,.tsx,.jsx,.json,.css,.html,.py"
       />
 
-      {/* Main Content */}
+      {/* Main Workstation Layout */}
       <div className="flex-1 flex overflow-hidden relative">
         {/* Mobile Sidebar Overlay */}
         {mobileSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
           />
         )}
 
-        {/* Activity Bar - Hidden on mobile */}
-        <div className="hidden md:block h-full">
-          <ActivityBar activeView={activeView} onViewChange={setActiveView} />
+        {/* Activity Bar - Desktop only */}
+        <div className="hidden md:block h-full flex-shrink-0">
+          <ActivityBar 
+            activeView={activeView} 
+            onViewChange={setActiveView}
+            onThemeClick={() => setCommandPaletteOpen(true)}
+          />
         </div>
         
-        {/* Sidebar - Drawer on mobile, normal on desktop */}
-        {activeView === "explorer" && (
+        {/* Sidebar Panel */}
+        {activeView && (
           <div
             ref={sidebarRef}
             className={`
@@ -276,10 +307,12 @@ export default function Home() {
               md:translate-x-0
               bg-surface-0
               md:h-full
+              flex-shrink-0
             `}
             style={{ width: isMobile ? "280px" : `${sidebarWidth}px` }}
           >
             <Sidebar
+              activeView={activeView}
               openFiles={openFiles}
               activeFile={activeFile}
               onFileClick={(file) => {
@@ -293,21 +326,22 @@ export default function Home() {
               customFiles={customFiles}
               onDeleteFile={(id) => {
                 fileSystem.deleteFile(id);
-                setCustomFiles(customFiles.filter(f => f.id !== id));
+                setCustomFiles((prev) => prev.filter((f) => f.id !== id));
                 if (activeFile === id) {
-                  const newOpenFiles = openFiles.filter(f => f !== id);
+                  const newOpenFiles = openFiles.filter((f) => f !== id);
                   setOpenFiles(newOpenFiles);
                   setActiveFile(newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null);
                 }
               }}
+              onNewFile={handleNewFile}
             />
           </div>
         )}
 
-        {/* Desktop Resizer - Hidden on mobile */}
-        {activeView === "explorer" && (
+        {/* Desktop Sidebar Resizer */}
+        {activeView && (
           <div
-            className="hidden md:block w-1 cursor-col-resize hover:bg-blue/20 transition-colors flex-shrink-0"
+            className="hidden md:block w-1 cursor-col-resize hover:bg-blue/40 transition-colors flex-shrink-0 bg-surface-2/40"
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.clientX;
@@ -315,14 +349,10 @@ export default function Home() {
 
               const handleMouseMove = (e: MouseEvent) => {
                 const diff = e.clientX - startX;
-                const newWidth = Math.max(150, Math.min(500, startWidth + diff));
-                
-                // Update directly via ref for immediate visual feedback
+                const newWidth = Math.max(160, Math.min(480, startWidth + diff));
                 if (sidebarRef.current) {
                   sidebarRef.current.style.width = `${newWidth}px`;
                 }
-                
-                // Update state for persistence
                 setSidebarWidth(newWidth);
               };
 
@@ -341,19 +371,20 @@ export default function Home() {
           />
         )}
 
-        {/* Mobile Explorer Toggle Button */}
+        {/* Mobile Explorer Toggle Floating Pill */}
         <button
           onClick={() => {
             setActiveView("explorer");
             setMobileSidebarOpen(true);
           }}
-          className="md:hidden fixed bottom-4 right-4 z-30 bg-blue text-base px-4 py-2 rounded-lg shadow-lg hover:bg-blue-light transition-colors flex items-center gap-2"
+          className="md:hidden fixed bottom-10 right-4 z-30 bg-blue text-base px-3.5 py-2 rounded-full shadow-2xl hover:bg-blue-light transition-all flex items-center gap-2 text-xs font-bold font-mono"
         >
-          <Folder size={20} />
-          <span className="text-sm">Explorer</span>
+          <Folder size={16} />
+          <span>Files</span>
         </button>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Center/Right Area: Editor & Terminal */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <Editor
             openFiles={openFiles}
             activeFile={activeFile}
@@ -365,25 +396,25 @@ export default function Home() {
             editedContent={editedContent}
             onContentChange={setEditedContent}
             onToggleEditMode={handleToggleEditMode}
+            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+            onToggleTerminal={() => setTerminalCollapsed(!terminalCollapsed)}
           />
+
+          {/* Terminal Vertical Resizer */}
           {!terminalCollapsed && (
             <div
-              className="h-1 cursor-row-resize hover:bg-blue/20 transition-colors flex-shrink-0"
+              className="h-1 cursor-row-resize hover:bg-blue/40 transition-colors flex-shrink-0 bg-surface-2/40"
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startY = e.clientY;
                 const startHeight = terminalHeight;
 
                 const handleMouseMove = (e: MouseEvent) => {
-                  const diff = startY - e.clientY; // Inverted because we're resizing from top
+                  const diff = startY - e.clientY;
                   const newHeight = Math.max(100, Math.min(600, startHeight + diff));
-                  
-                  // Update directly via ref for immediate visual feedback
                   if (terminalRef.current) {
                     terminalRef.current.style.height = `${newHeight}px`;
                   }
-                  
-                  // Update state for persistence
                   setTerminalHeight(newHeight);
                 };
 
@@ -401,15 +432,37 @@ export default function Home() {
               }}
             />
           )}
+
+          {/* Terminal Component */}
           <Terminal
             ref={terminalRef}
             isCollapsed={terminalCollapsed}
             onToggle={() => setTerminalCollapsed(!terminalCollapsed)}
             height={terminalHeight}
+            onOpenFile={handleFileClick}
+            onSetTheme={handleSetTheme}
           />
         </div>
       </div>
+
+      {/* VS Code Bottom Status Bar */}
+      <StatusBar
+        activeFile={activeFile}
+        activeTheme={activeTheme}
+        onThemeClick={() => setCommandPaletteOpen(true)}
+        terminalCollapsed={terminalCollapsed}
+        onToggleTerminal={() => setTerminalCollapsed(!terminalCollapsed)}
+      />
+
+      {/* Command Palette Modal */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenFile={handleFileClick}
+        onSetTheme={handleSetTheme}
+        onToggleTerminal={() => setTerminalCollapsed(!terminalCollapsed)}
+        onNewFile={handleNewFile}
+      />
     </div>
   );
 }
-

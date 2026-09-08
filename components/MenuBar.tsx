@@ -1,13 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { 
+  Menu, 
+  X, 
+  Search, 
+  Palette, 
+  Terminal, 
+  Folder, 
+  Github, 
+  Command,
+  Sparkles,
+  Layers,
+  ChevronDown
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MenuItem {
   label?: string;
   action?: () => void;
-  submenu?: MenuItem[];
   shortcut?: string;
   divider?: boolean;
 }
@@ -20,6 +31,9 @@ interface MenuBarProps {
   onAppearance?: () => void;
   onToggleTerminal?: () => void;
   onToggleExplorer?: () => void;
+  onOpenCommandPalette?: () => void;
+  onSetTheme?: (theme: string) => void;
+  activeTheme?: string;
   mobileMenuOpen?: boolean;
   onToggleMobileMenu?: () => void;
 }
@@ -32,44 +46,51 @@ export default function MenuBar({
   onAppearance,
   onToggleTerminal,
   onToggleExplorer,
+  onOpenCommandPalette = () => {},
+  onSetTheme,
+  activeTheme = "oled",
   mobileMenuOpen = false,
   onToggleMobileMenu,
 }: MenuBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const themeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenu(null);
       }
+      if (themeRef.current && !themeRef.current.contains(event.target as Node)) {
+        setThemeDropdownOpen(false);
+      }
     };
 
-    if (activeMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [activeMenu]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const divider = (): MenuItem => ({ divider: true });
+
+  const themes = [
+    { id: "oled", name: "OLED Midnight Dark (Default)", desc: "Pitch-black obsidian, neon glow" },
+    { id: "vscode", name: "VS Code Dark Modern", desc: "Classic IDE dark theme" },
+    { id: "tokyo", name: "Tokyo Night", desc: "Cyberpunk indigo and violet" },
+    { id: "catppuccin", name: "Catppuccin Mocha", desc: "Warm soothing purple-slate" },
+  ];
 
   const menus: { label: string; items: MenuItem[] }[] = [
     {
       label: "File",
       items: [
         { label: "New File", shortcut: "Ctrl+N", action: onNewFile },
-        { label: "New Window", shortcut: "Ctrl+Shift+N" },
         divider(),
         { label: "Open File...", shortcut: "Ctrl+O", action: onOpenFile },
-        { label: "Open Folder...", shortcut: "Ctrl+K Ctrl+O" },
-        divider(),
-        { label: "Save", shortcut: "Ctrl+S", action: onSave },
+        { label: "Save File", shortcut: "Ctrl+S", action: onSave },
         { label: "Save As...", shortcut: "Ctrl+Shift+S", action: onSaveAs },
         divider(),
-        { label: "Exit" },
+        { label: "Command Palette...", shortcut: "Ctrl+K", action: onOpenCommandPalette },
       ],
     },
     {
@@ -78,138 +99,83 @@ export default function MenuBar({
         { label: "Undo", shortcut: "Ctrl+Z" },
         { label: "Redo", shortcut: "Ctrl+Y" },
         divider(),
-        { label: "Cut", shortcut: "Ctrl+X" },
-        { label: "Copy", shortcut: "Ctrl+C" },
-        { label: "Paste", shortcut: "Ctrl+V" },
-        divider(),
-        { label: "Find", shortcut: "Ctrl+F" },
-        { label: "Replace", shortcut: "Ctrl+H" },
-      ],
-    },
-    {
-      label: "Selection",
-      items: [
-        { label: "Select All", shortcut: "Ctrl+A" },
-        { label: "Expand Selection", shortcut: "Shift+Alt+Right" },
-        { label: "Shrink Selection", shortcut: "Shift+Alt+Left" },
-        divider(),
-        { label: "Copy Line Up", shortcut: "Shift+Alt+Up" },
-        { label: "Copy Line Down", shortcut: "Shift+Alt+Down" },
+        { label: "Find in Files", shortcut: "Ctrl+F", action: onOpenCommandPalette },
       ],
     },
     {
       label: "View",
       items: [
-        { label: "Command Palette...", shortcut: "Ctrl+Shift+P" },
+        { label: "Command Palette...", shortcut: "Ctrl+K", action: onOpenCommandPalette },
         divider(),
         { label: "Explorer", shortcut: "Ctrl+Shift+E", action: onToggleExplorer },
-        { label: "Search", shortcut: "Ctrl+Shift+F" },
-        { label: "Source Control", shortcut: "Ctrl+Shift+G" },
+        { label: "Toggle Terminal", shortcut: "Ctrl+`", action: onToggleTerminal },
         divider(),
-        { label: "Terminal", shortcut: "Ctrl+`", action: onToggleTerminal },
-        divider(),
-        { label: "Appearance", action: onAppearance },
-        { label: "Editor Layout" },
-      ],
-    },
-    {
-      label: "Go",
-      items: [
-        { label: "Back", shortcut: "Alt+Left" },
-        { label: "Forward", shortcut: "Alt+Right" },
-        divider(),
-        { label: "Go to File...", shortcut: "Ctrl+P" },
-        { label: "Go to Symbol...", shortcut: "Ctrl+Shift+O" },
-        { label: "Go to Line/Column...", shortcut: "Ctrl+G" },
-      ],
-    },
-    {
-      label: "Run",
-      items: [
-        { label: "Start Debugging", shortcut: "F5" },
-        { label: "Run Without Debugging", shortcut: "Ctrl+F5" },
-        divider(),
-        { label: "Stop", shortcut: "Shift+F5" },
-        divider(),
-        { label: "Step Over", shortcut: "F10" },
-        { label: "Step Into", shortcut: "F11" },
-        { label: "Step Out", shortcut: "Shift+F11" },
-      ],
-    },
-    {
-      label: "Terminal",
-      items: [
-        { label: "New Terminal", shortcut: "Ctrl+Shift+`" },
-        { label: "Split Terminal" },
-        divider(),
-        { label: "Run Task..." },
-        { label: "Run Build Task...", shortcut: "Ctrl+Shift+B" },
+        { label: "Themes & Appearance", action: onAppearance },
       ],
     },
     {
       label: "Help",
       items: [
-        { label: "Welcome" },
-        { label: "Documentation" },
-        divider(),
-        { label: "Keyboard Shortcuts Reference" },
-        divider(),
-        { label: "About" },
+        { label: "About AlQavi", action: () => onOpenCommandPalette() },
+        { label: "GitHub Profile", action: () => window.open("https://github.com/alqavii", "_blank") },
       ],
     },
   ];
 
-  const handleMenuClick = (label: string) => {
-    setActiveMenu(activeMenu === label ? null : label);
-  };
-
   return (
-    <>
-      <div ref={menuRef} className="h-6 bg-surface-0 border-b border-surface-2/50 flex items-center text-xs text-text-secondary select-none">
-        {/* Mobile Menu Button */}
+    <div className="h-9 bg-surface-0 border-b border-surface-2 flex items-center justify-between px-3 select-none text-xs font-mono z-30">
+      {/* Left: VS Code Menu Items */}
+      <div ref={menuRef} className="flex items-center gap-1">
+        {/* Mobile menu trigger */}
         <button
           onClick={onToggleMobileMenu}
-          className="md:hidden px-3 h-6 flex items-center hover:bg-surface-1 transition-colors"
+          className="md:hidden p-1 text-text-tertiary hover:text-text-primary rounded"
         >
           {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
         </button>
 
-        {/* Desktop Menus */}
-        <div className="hidden md:flex">
+        {/* Project Branding Icon */}
+        <div className="hidden sm:flex items-center gap-2 mr-2 text-blue font-bold tracking-wider">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue animate-pulse-subtle" />
+          <span className="text-text-primary">ALQAVI</span>
+        </div>
+
+        {/* Menu Bar dropdowns */}
+        <div className="hidden md:flex items-center">
           {menus.map((menu) => (
             <div key={menu.label} className="relative">
               <button
-                onClick={() => handleMenuClick(menu.label)}
+                onClick={() => setActiveMenu(activeMenu === menu.label ? null : menu.label)}
+                onMouseEnter={() => {
+                  if (activeMenu) setActiveMenu(menu.label);
+                }}
                 className={cn(
-                  "px-3 h-6 flex items-center hover:bg-surface-1 transition-colors",
-                  activeMenu === menu.label && "bg-surface-1"
+                  "px-2.5 py-1 rounded transition-colors text-text-secondary hover:text-text-primary",
+                  activeMenu === menu.label && "bg-surface-2 text-text-primary"
                 )}
               >
                 {menu.label}
               </button>
+
+              {/* Dropdown menu */}
               {activeMenu === menu.label && (
-                <div className="absolute top-6 left-0 bg-surface-1 border border-surface-2 shadow-lg z-50 min-w-[200px] py-1">
-                  {menu.items.map((item, index) => {
+                <div className="absolute left-0 top-full mt-1 min-w-[200px] bg-surface-1 border border-surface-3 rounded-lg shadow-2xl py-1 z-50 text-xs">
+                  {menu.items.map((item, idx) => {
                     if (item.divider) {
-                      return (
-                        <div
-                          key={`divider-${index}`}
-                          className="h-px bg-surface-2 my-1 mx-1"
-                        />
-                      );
+                      return <div key={idx} className="my-1 border-t border-surface-2" />;
                     }
                     return (
                       <button
-                        key={index}
+                        key={idx}
                         onClick={() => {
                           setActiveMenu(null);
                           item.action?.();
                         }}
-                        className="w-full px-3 py-1.5 text-left hover:bg-blue/20 flex items-center justify-between text-sm text-text-secondary hover:text-text-primary transition-colors"
+                        className="w-full px-3 py-1.5 flex items-center justify-between text-left hover:bg-surface-2 text-text-secondary hover:text-text-primary transition-colors"
                       >
                         <span>{item.label}</span>
                         {item.shortcut && (
-                          <span className="text-xs text-text-tertiary ml-4">
+                          <span className="text-[10px] text-text-tertiary ml-4">
                             {item.shortcut}
                           </span>
                         )}
@@ -221,53 +187,82 @@ export default function MenuBar({
             </div>
           ))}
         </div>
-
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden absolute top-6 left-0 right-0 bg-surface-1 border-b border-surface-2 shadow-lg z-50 max-h-[calc(100vh-24px)] overflow-y-auto">
-            {menus.map((menu) => (
-              <div key={menu.label}>
-                <div className="px-4 py-2 text-sm font-semibold text-text-primary border-b border-surface-2">
-                  {menu.label}
-                </div>
-                {menu.items.map((item, index) => {
-                  if (item.divider) {
-                    return (
-                      <div
-                        key={`divider-${index}`}
-                        className="h-px bg-surface-2 my-1 mx-4"
-                      />
-                    );
-                  }
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setActiveMenu(null);
-                        onToggleMobileMenu?.();
-                        item.action?.();
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-blue/20 flex items-center justify-between text-sm text-text-secondary hover:text-text-primary transition-colors"
-                    >
-                      <span>{item.label}</span>
-                      {item.shortcut && (
-                        <span className="text-xs text-text-tertiary ml-4">
-                          {item.shortcut}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex-1" />
-        <div className="px-3 text-text-tertiary text-xs hidden md:block">
-          Portfolio
-        </div>
       </div>
-    </>
+
+      {/* Center: Interactive Omnibar / Command Trigger */}
+      <div className="flex-1 max-w-md mx-2 md:mx-4">
+        <button
+          onClick={onOpenCommandPalette}
+          className="w-full flex items-center justify-between px-3 py-1 rounded-md bg-surface-1 hover:bg-surface-2 border border-surface-2 hover:border-blue/50 text-text-tertiary hover:text-text-secondary transition-all shadow-inner group"
+          title="Search files, projects & commands (Ctrl+K)"
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Search size={13} className="text-text-tertiary group-hover:text-blue transition-colors" />
+            <span className="text-xs truncate">alqavi-portfolio — Search files & projects...</span>
+          </div>
+          <kbd className="hidden sm:inline px-1.5 py-0.2 rounded bg-surface-2 text-[10px] border border-surface-3 text-text-secondary">
+            Ctrl K
+          </kbd>
+        </button>
+      </div>
+
+      {/* Right: Quick actions & Theme Selector */}
+      <div className="flex items-center gap-2">
+        {/* Theme switcher dropdown */}
+        <div ref={themeRef} className="relative">
+          <button
+            onClick={() => setThemeDropdownOpen(!themeDropdownOpen)}
+            className="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-1 hover:bg-surface-2 text-text-secondary hover:text-text-primary border border-surface-2 transition-colors text-xs"
+            title="Change Theme"
+          >
+            <Palette size={13} className="text-mauve" />
+            <span className="hidden lg:inline capitalize">{activeTheme}</span>
+            <ChevronDown size={11} className="text-text-tertiary" />
+          </button>
+
+          {themeDropdownOpen && (
+            <div className="absolute right-0 top-full mt-1 w-64 bg-surface-1 border border-surface-3 rounded-lg shadow-2xl p-1.5 z-50 text-xs">
+              <span className="text-[10px] uppercase font-bold text-text-tertiary px-2 py-1 block">
+                Select Theme
+              </span>
+              {themes.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    onSetTheme?.(t.id);
+                    setThemeDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full px-2.5 py-1.5 rounded text-left transition-colors flex flex-col mt-0.5",
+                    activeTheme === t.id
+                      ? "bg-surface-3 text-blue font-bold"
+                      : "hover:bg-surface-2 text-text-secondary hover:text-text-primary"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{t.name}</span>
+                    {activeTheme === t.id && <span className="text-[10px] text-blue">✓ Active</span>}
+                  </div>
+                  <span className="text-[10px] text-text-tertiary font-normal mt-0.5">
+                    {t.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* GitHub link */}
+        <a
+          href="https://github.com/alqavii"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 text-text-tertiary hover:text-text-primary rounded hover:bg-surface-1 transition-colors"
+          title="GitHub"
+        >
+          <Github size={15} />
+        </a>
+      </div>
+    </div>
   );
 }
-
