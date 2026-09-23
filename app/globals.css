@@ -2,116 +2,124 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Colours follow VS Code's built-in themes. */
+
 @layer base {
-  /* Default: OLED Midnight Dark (Ultra-deep, modern, subtle IDE dividers) */
-  :root, [data-theme="oled"] {
-    --theme-base: #07080c;
-    --theme-surface-0: #0a0c12;
-    --theme-surface-1: #0f121a;
-    --theme-surface-2: #141824;
-    --theme-surface-3: #1a2030;
-    --theme-surface-4: #242c42;
-    --theme-border: rgba(255, 255, 255, 0.06);
-    --theme-text-primary: #e2e8f0;
-    --theme-text-secondary: #94a3b8;
-    --theme-text-tertiary: #64748b;
-    --theme-blue: #38bdf8;
-    --theme-blue-light: #7dd3fc;
-    --theme-green: #34d399;
-    --theme-yellow: #fbbf24;
-    --theme-peach: #fb923c;
-    --theme-red: #f87171;
-    --theme-mauve: #c084fc;
-    --theme-accent: #38bdf8;
-  }
-
-  /* VS Code Dark Modern */
-  [data-theme="vscode"] {
-    --theme-base: #181818;
-    --theme-surface-0: #1f1f1f;
-    --theme-surface-1: #252526;
-    --theme-surface-2: #2d2d2d;
-    --theme-surface-3: #37373d;
-    --theme-surface-4: #45454d;
+  /* Dark Modern (VS Code default) */
+  :root,
+  [data-theme="dark-modern"] {
+    --theme-base: #1f1f1f;
+    --theme-surface-0: #181818;
+    --theme-surface-1: #2a2d2e;
+    --theme-surface-2: #37373d;
+    --theme-surface-3: #45454a;
+    --theme-surface-4: #5a5a5f;
     --theme-border: #2b2b2b;
+    --theme-border-strong: #3c3c3c;
+
+    --theme-titlebar: #181818;
+    --theme-activitybar: #181818;
+    --theme-tab-inactive: #181818;
+    --theme-panel: #181818;
+    --theme-statusbar: #181818;
+    --theme-statusbar-fg: #cccccc;
+    --theme-statusbar-hover: #2a2d2e;
+    --theme-input: #313131;
+
     --theme-text-primary: #cccccc;
-    --theme-text-secondary: #969696;
-    --theme-text-tertiary: #666666;
-    --theme-blue: #007acc;
-    --theme-blue-light: #1f8ad2;
-    --theme-green: #4ec9b0;
-    --theme-yellow: #dcdcaa;
-    --theme-peach: #ce9178;
+    --theme-text-secondary: #9d9d9d;
+    --theme-text-tertiary: #868686;
+
+    --theme-accent: #0078d4;
+    --theme-accent-muted: #264f78;
+    --theme-blue: #4daafc;
+    --theme-blue-light: #75beff;
+
+    --theme-green: #89d185;
     --theme-red: #f14c4c;
+    --theme-yellow: #cca700;
+    --theme-peach: #ce9178;
     --theme-mauve: #c586c0;
+  }
+
+  /* Dark+ (the classic VS Code dark theme) */
+  [data-theme="dark-plus"] {
+    --theme-base: #1e1e1e;
+    --theme-surface-0: #252526;
+    --theme-surface-1: #2a2d2e;
+    --theme-surface-2: #37373d;
+    --theme-surface-3: #45454a;
+    --theme-surface-4: #5a5a5f;
+    --theme-border: #2d2d2d;
+    --theme-border-strong: #454545;
+
+    --theme-titlebar: #3c3c3c;
+    --theme-activitybar: #333333;
+    --theme-tab-inactive: #2d2d2d;
+    --theme-panel: #1e1e1e;
+    --theme-statusbar: #007acc;
+    --theme-statusbar-fg: #ffffff;
+    --theme-statusbar-hover: #1f8ad2;
+    --theme-input: #3c3c3c;
+
+    --theme-text-primary: #cccccc;
+    --theme-text-secondary: #a0a0a0;
+    --theme-text-tertiary: #858585;
+
     --theme-accent: #007acc;
+    --theme-accent-muted: #264f78;
+    --theme-blue: #3794ff;
+    --theme-blue-light: #75beff;
+
+    --theme-green: #89d185;
+    --theme-red: #f14c4c;
+    --theme-yellow: #cca700;
+    --theme-peach: #ce9178;
+    --theme-mauve: #c586c0;
   }
 
-  /* Tokyo Night */
-  [data-theme="tokyo"] {
-    --theme-base: #16161e;
-    --theme-surface-0: #13141c;
-    --theme-surface-1: #1a1b26;
-    --theme-surface-2: #24283b;
-    --theme-surface-3: #2f354d;
-    --theme-surface-4: #414868;
-    --theme-border: #292e42;
-    --theme-text-primary: #c0caf5;
-    --theme-text-secondary: #9aa5ce;
-    --theme-text-tertiary: #565f89;
-    --theme-blue: #7aa2f7;
-    --theme-blue-light: #89ddff;
-    --theme-green: #73daca;
-    --theme-yellow: #e0af68;
-    --theme-peach: #ff9e64;
-    --theme-red: #f7768e;
-    --theme-mauve: #bb9af7;
-    --theme-accent: #7aa2f7;
-  }
-
-  /* Catppuccin Mocha */
-  [data-theme="catppuccin"] {
-    --theme-base: #1e1e2e;
-    --theme-surface-0: #181825;
-    --theme-surface-1: #1e1e2e;
-    --theme-surface-2: #313244;
-    --theme-surface-3: #45475a;
-    --theme-surface-4: #585b70;
-    --theme-border: #313244;
-    --theme-text-primary: #cdd6f4;
-    --theme-text-secondary: #bac2de;
-    --theme-text-tertiary: #a6adc8;
-    --theme-blue: #89b4fa;
-    --theme-blue-light: #b4befe;
-    --theme-green: #a6e3a1;
-    --theme-yellow: #f9e2af;
-    --theme-peach: #fab387;
-    --theme-red: #f38ba8;
-    --theme-mauve: #cba6f7;
-    --theme-accent: #89b4fa;
-  }
-
-  *, ::before, ::after {
+  *,
+  ::before,
+  ::after {
     border-color: var(--theme-border);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     background-color: var(--theme-base);
     color: var(--theme-text-primary);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI",
+      system-ui, Ubuntu, "Droid Sans", sans-serif;
+  }
+
+  ::selection {
+    background: var(--theme-accent-muted);
+    color: var(--theme-text-primary);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--theme-accent);
+    outline-offset: -1px;
+  }
+
+  input[type="range"] {
+    accent-color: var(--theme-accent);
   }
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: var(--theme-surface-3) transparent;
+    scrollbar-color: rgba(121, 121, 121, 0.4) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -119,17 +127,24 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: var(--theme-surface-3);
-    border-radius: 3px;
+    background-color: rgba(121, 121, 121, 0.4);
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: var(--theme-surface-4);
+    background-color: rgba(100, 100, 100, 0.7);
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-.markdown-content blockquote {
-  background: rgba(56, 189, 248, 0.05);
-  border-radius: 0 4px 4px 0;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-

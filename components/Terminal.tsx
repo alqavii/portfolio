@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, forwardRef } from "react";
-import { ChevronUp, ChevronDown, Terminal as TerminalIcon, Sparkles, CornerDownLeft } from "lucide-react";
+import { ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import projectsData from "@/data/projects.json";
+import { THEMES, isTheme } from "@/lib/themes";
 
 interface TerminalProps {
   isCollapsed: boolean;
@@ -13,350 +15,180 @@ interface TerminalProps {
 }
 
 interface TerminalLine {
-  type: "input" | "output" | "error" | "success" | "accent";
+  type: "input" | "output" | "error";
   text: string;
 }
 
+const PROMPT = "PS C:\\Users\\alqavi>";
+
+const GREETING: TerminalLine[] = [
+  { type: "output", text: "Type 'help' to see available commands." },
+  { type: "output", text: "" },
+];
+
+const THEME_IDS = THEMES.map((t) => t.id).join(", ");
+
 const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
   ({ isCollapsed, onToggle, height = 256, onOpenFile, onSetTheme }, ref) => {
-    const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([
-      { type: "output", text: "AlQavi Hasan • Quant Workstation Shell [Version 2.0.1]" },
-      { type: "output", text: "Type 'help' for available commands, or click any shortcut below." },
-      { type: "output", text: "" },
-    ]);
+    const [history, setHistory] = useState<TerminalLine[]>(GREETING);
     const [currentInput, setCurrentInput] = useState("");
-    const [currentPath, setCurrentPath] = useState("C:\\Users\\alqavi");
     const inputRef = useRef<HTMLInputElement>(null);
-    const terminalRef = useRef<HTMLDivElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      if (!isCollapsed && inputRef.current) {
-        inputRef.current.focus();
-      }
+      if (!isCollapsed) inputRef.current?.focus();
     }, [isCollapsed]);
 
     useEffect(() => {
-      if (terminalRef.current) {
-        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-      }
-    }, [terminalHistory]);
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }, [history]);
+
+    const print = (...lines: (string | TerminalLine)[]) =>
+      setHistory((prev) => [
+        ...prev,
+        ...lines.map((l) => (typeof l === "string" ? { type: "output" as const, text: l } : l)),
+      ]);
+
+    const openTarget = (arg: string): string | null => {
+      const name = arg.replace(/\.md$/, "");
+      if (name === "alqavi" || name === "about") return "alqavi.md";
+      if (name === "contact") return "contact.md";
+      const project = projectsData.find((p) => p.id === name || p.id.startsWith(name));
+      return project ? `projects/${project.id}/README.md` : null;
+    };
 
     const handleCommand = (command: string) => {
       const trimmed = command.trim();
-      if (!trimmed) {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "input", text: `${currentPath}> ` },
-        ]);
-        return;
-      }
+      setHistory((prev) => [...prev, { type: "input", text: `${PROMPT} ${command}` }]);
+      if (!trimmed) return;
 
-      setTerminalHistory((prev) => [
-        ...prev,
-        { type: "input", text: `${currentPath}> ${command}` },
-      ]);
+      const [rawCmd, ...rest] = trimmed.split(/\s+/);
+      const cmd = rawCmd.toLowerCase();
+      const arg = rest.join(" ").toLowerCase();
 
-      const cmdParts = trimmed.split(" ");
-      const cmd = cmdParts[0].toLowerCase();
-      const arg = cmdParts.slice(1).join(" ").trim().toLowerCase();
-
-      // Command: cls / clear
-      if (cmd === "cls" || cmd === "clear") {
-        setTerminalHistory([
-          { type: "output", text: "AlQavi Hasan • Quant Workstation Shell [Version 2.0.1]" },
-          { type: "output", text: "Type 'help' for available commands." },
-          { type: "output", text: "" },
-        ]);
-        return;
-      }
-
-      // Command: help / commands
-      if (cmd === "help" || cmd === "commands") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "AVAILABLE COMMANDS:" },
-          { type: "output", text: "  petral        - Run Nelson-Siegel crude oil forward curve calibration & simulator" },
-          { type: "output", text: "  about         - View AlQavi's background, education & quant experience" },
-          { type: "output", text: "  projects      - List quantitative systems & repositories" },
-          { type: "output", text: "  skills        - Display tech stack and quantitative domains" },
-          { type: "output", text: "  contact       - Display email, phone, and social channels" },
-          { type: "output", text: "  open <file>   - Open file (e.g. 'open petral', 'open alqavi.md', 'open qtc')" },
-          { type: "output", text: "  theme <name>  - Change theme (oled, vscode, tokyo, catppuccin)" },
-          { type: "output", text: "  clear / cls   - Clear the terminal console" },
-          { type: "output", text: "" },
-        ]);
-        return;
-      }
-
-      // Command: petral / run petral
-      if (cmd === "petral" || (cmd === "run" && arg === "petral")) {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "[PETRAL DASHBOARD] Institutional Crude Oil Trading Desk Dashboard" },
-          { type: "output", text: "  → Live URL:      https://petral.xyz" },
-          { type: "output", text: "  → Backend API:   https://petral2.vercel.app" },
-          { type: "output", text: "  → GitHub:        https://github.com/alqavii/petral" },
-          { type: "output", text: "  → Synthesis:     Sourced & proxy-labelled data, benchmark board (WTI/Brent/Dubai)" },
-          { type: "output", text: "  → Analytics:     Levels, spreads, z-scores, carry framing, consensus-vs-actual" },
-          { type: "success", text: "  ✓ Calibration:   Pure-NumPy Nelson-Siegel forward curves (M1 -> M24)" },
-          { type: "accent", text: "[Opening Petral overview & simulator in editor...]" },
-          { type: "output", text: "" },
-        ]);
-        if (onOpenFile) {
-          onOpenFile("projects/petral/README.md");
-        }
-        return;
-      }
-
-      // Command: about / bio
-      if (cmd === "about" || cmd === "bio") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "ALQAVI HASAN" },
-          { type: "output", text: "  Chemical Engineering student at Imperial College London" },
-          { type: "output", text: "  Focus: Quantitative finance, commodities term structure (oil & refined products)" },
-          { type: "output", text: "  Role: Head of Back-End, Imperial Algorithmic Trading Society (QT Capital Alpha)" },
-          { type: "output", text: "  Languages: English (native), Italian, Spanish" },
-          { type: "output", text: "  Opening alqavi.md..." },
-          { type: "output", text: "" },
-        ]);
-        if (onOpenFile) {
-          onOpenFile("alqavi.md");
-        }
-        return;
-      }
-
-      // Command: projects
-      if (cmd === "projects" || cmd === "ls" || cmd === "dir") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "PORTFOLIO PROJECTS:" },
-          { type: "output", text: "  1. petral       - Crude oil term structure & Nelson-Siegel curve engine" },
-          { type: "output", text: "  2. qtc-quant    - QT Capital Alpha multi-team trading execution platform" },
-          { type: "output", text: "  3. ssvi-surface - SSVI Volatility Surface calibration tool" },
-          { type: "output", text: "  4. alqavi.md    - Personal introduction and leadership background" },
-          { type: "output", text: "  5. contact.md   - Contact information & links" },
-          { type: "output", text: "Type 'open <project>' to view any project." },
-          { type: "output", text: "" },
-        ]);
-        return;
-      }
-
-      // Command: skills / stack
-      if (cmd === "skills" || cmd === "stack") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "TECHNICAL & QUANTITATIVE SKILLS:" },
-          { type: "output", text: "  • Quant Modeling: Nelson-Siegel forward curves, SSVI surfaces, roll yields, spreads" },
-          { type: "output", text: "  • Programming:    Python, TypeScript, SQL, Bash" },
-          { type: "output", text: "  • Quant Libraries: NumPy, SciPy, Pandas, Scikit-learn, Matplotlib, Plotly" },
-          { type: "output", text: "  • Infrastructure:  FastAPI, Parquet, Alpaca-py, WebSockets, Next.js, Docker" },
-          { type: "output", text: "  • Commodities:    WTI/Brent crude, crack spreads, calendar spreads, OPEC flows" },
-          { type: "output", text: "" },
-        ]);
-        return;
-      }
-
-      // Command: contact
-      if (cmd === "contact") {
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "accent", text: "CONTACT INFORMATION:" },
-          { type: "output", text: "  Email:    alqavihasan@gmail.com" },
-          { type: "output", text: "  Phone:    +44 7392 516153" },
-          { type: "output", text: "  GitHub:   https://github.com/alqavii" },
-          { type: "output", text: "  LinkedIn: https://linkedin.com/in/alqavi" },
-          { type: "output", text: "" },
-        ]);
-        if (onOpenFile) {
-          onOpenFile("contact.md");
-        }
-        return;
-      }
-
-      // Command: open <file>
-      if (cmd === "open" || cmd === "cat") {
-        if (!arg) {
-          setTerminalHistory((prev) => [
-            ...prev,
-            { type: "error", text: "Usage: open <filename> (e.g. 'open petral', 'open alqavi.md')" },
-          ]);
+      switch (cmd) {
+        case "clear":
+        case "cls":
+          setHistory([]);
           return;
-        }
 
-        if (arg === "petral" || arg === "petral.md") {
-          onOpenFile?.("projects/petral/README.md");
-          setTerminalHistory((prev) => [...prev, { type: "success", text: "Opening Petral documentation..." }]);
+        case "help":
+          print(
+            "  about           open alqavi.md",
+            "  contact         open contact.md",
+            "  ls              list projects",
+            "  open <name>     open a file or project README",
+            `  theme <name>    ${THEME_IDS}`,
+            "  clear           clear the terminal",
+            ""
+          );
           return;
-        }
-        if (arg === "alqavi" || arg === "alqavi.md" || arg === "about") {
+
+        case "about":
+        case "whoami":
+          print("AlQavi Hasan, 1st Year Chemical Engineering Student @ Sheffield", "");
           onOpenFile?.("alqavi.md");
-          setTerminalHistory((prev) => [...prev, { type: "success", text: "Opening alqavi.md..." }]);
           return;
-        }
-        if (arg === "contact" || arg === "contact.md") {
+
+        case "contact":
+          print("alqavihasan@gmail.com", "+44 7392 516153", "");
           onOpenFile?.("contact.md");
-          setTerminalHistory((prev) => [...prev, { type: "success", text: "Opening contact.md..." }]);
           return;
-        }
-        if (arg === "qtc" || arg === "qtc-quant") {
-          onOpenFile?.("projects/qtc-quant/README.md");
-          setTerminalHistory((prev) => [...prev, { type: "success", text: "Opening QTC Quant..." }]);
-          return;
-        }
-        if (arg === "ssvi" || arg === "ssvi-surface") {
-          onOpenFile?.("projects/ssvi-surface/README.md");
-          setTerminalHistory((prev) => [...prev, { type: "success", text: "Opening SSVI Surface..." }]);
-          return;
-        }
 
-        setTerminalHistory((prev) => [
-          ...prev,
-          { type: "error", text: `File not found: ${arg}. Try 'projects' to list available files.` },
-        ]);
-        return;
-      }
+        case "ls":
+        case "dir":
+          print(...projectsData.map((p) => `  ${p.name.padEnd(14)}${p.description}`), "");
+          return;
 
-      // Command: theme <name>
-      if (cmd === "theme") {
-        if (!arg) {
-          setTerminalHistory((prev) => [
-            ...prev,
-            { type: "output", text: "Available themes: oled, vscode, tokyo, catppuccin" },
-            { type: "output", text: "Example: theme oled" },
-          ]);
+        case "open":
+        case "cat":
+        case "code": {
+          const target = arg ? openTarget(arg) : null;
+          if (target) {
+            onOpenFile?.(target);
+          } else {
+            print({ type: "error", text: arg ? `Cannot find '${arg}'.` : "Usage: open <name>" });
+          }
           return;
         }
 
-        const validThemes = ["oled", "vscode", "tokyo", "catppuccin"];
-        if (validThemes.includes(arg)) {
-          onSetTheme?.(arg);
-          setTerminalHistory((prev) => [
-            ...prev,
-            { type: "success", text: `✓ Theme successfully set to '${arg}'` },
-          ]);
-        } else {
-          setTerminalHistory((prev) => [
-            ...prev,
-            { type: "error", text: `Unknown theme: '${arg}'. Choose from: oled, vscode, tokyo, catppuccin` },
-          ]);
-        }
-        return;
-      }
+        case "theme":
+          if (isTheme(arg)) {
+            onSetTheme?.(arg);
+          } else {
+            print(`Themes: ${THEME_IDS}`);
+          }
+          return;
 
-      // Command: cd
-      if (cmd === "cd") {
-        if (arg) {
-          setCurrentPath(arg);
-          setTerminalHistory((prev) => [...prev, { type: "output", text: "" }]);
-        } else {
-          setTerminalHistory((prev) => [...prev, { type: "output", text: currentPath }]);
-        }
-        return;
-      }
-
-      // Fallback
-      setTerminalHistory((prev) => [
-        ...prev,
-        {
-          type: "error",
-          text: `'${cmd}' is not recognized. Type 'help' to see supported commands.`,
-        },
-      ]);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        handleCommand(currentInput);
-        setCurrentInput("");
-      } else if (e.key === "Escape") {
-        setCurrentInput("");
+        default:
+          print({
+            type: "error",
+            text: `${rawCmd}: The term '${rawCmd}' is not recognized. Type 'help' for commands.`,
+          });
       }
     };
-
-    const suggestions = ["help", "petral", "about", "projects", "skills", "contact", "theme oled", "clear"];
 
     return (
       <div
         ref={ref}
         className={cn(
-          "bg-surface-0 border-t border-border flex flex-col font-mono select-none",
-          isCollapsed ? "h-8 transition-all duration-300" : ""
+          "bg-panel border-t border-border flex flex-col select-none flex-shrink-0",
+          isCollapsed && "h-[35px]"
         )}
         style={!isCollapsed ? { height: `${height}px` } : undefined}
       >
-        {/* Terminal Header Bar */}
-        <div className="flex items-center justify-between px-3 py-1 bg-surface-1/70 border-b border-border">
-          <div className="flex items-center gap-2">
-            <TerminalIcon size={13} className="text-yellow" />
-            <span className="text-[11px] font-bold text-text-secondary">QUANT TERMINAL</span>
-            <span className="text-[10px] text-text-tertiary hidden sm:inline">• PowerShell 7</span>
+        <div className="flex items-center justify-between h-[35px] px-2 flex-shrink-0">
+          <div className="flex items-center h-full">
+            <span className="px-2.5 h-full flex items-center text-xs uppercase tracking-wide text-text-primary border-b border-text-primary">
+              Terminal
+            </span>
           </div>
-
-          {/* Quick suggestions pills */}
-          {!isCollapsed && (
-            <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto">
-              {suggestions.slice(0, 6).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleCommand(s)}
-                  className="px-2 py-0.5 rounded bg-surface-2/60 hover:bg-surface-3 text-[10px] text-text-secondary hover:text-text-primary transition-colors border border-border"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={onToggle}
-              className="text-text-tertiary hover:text-text-primary p-0.5 rounded transition-colors"
-              title={isCollapsed ? "Expand Terminal" : "Collapse Terminal"}
+              className="p-1 rounded text-text-secondary hover:text-text-primary hover:bg-surface-1"
+              title={isCollapsed ? "Maximize Panel" : "Close Panel"}
             >
-              {isCollapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              {isCollapsed ? <ChevronUp size={16} /> : <X size={16} />}
             </button>
           </div>
         </div>
 
-        {/* Terminal Output Body */}
         {!isCollapsed && (
           <div
-            ref={terminalRef}
-            className="flex-1 p-3 font-mono text-xs overflow-y-auto scrollbar-thin space-y-0.5 bg-base"
+            ref={scrollRef}
+            className="flex-1 px-5 pb-2 font-mono text-[13px] leading-[19px] overflow-y-auto scrollbar-thin select-text"
             onClick={() => inputRef.current?.focus()}
           >
-            {terminalHistory.map((item, index) => (
+            {history.map((line, index) => (
               <div
                 key={index}
                 className={cn(
-                  "whitespace-pre-wrap leading-relaxed",
-                  item.type === "input"
-                    ? "text-blue font-semibold"
-                    : item.type === "error"
-                    ? "text-red"
-                    : item.type === "success"
-                    ? "text-green font-semibold"
-                    : item.type === "accent"
-                    ? "text-yellow font-bold"
-                    : "text-text-secondary"
+                  "whitespace-pre-wrap min-h-[19px]",
+                  line.type === "error" ? "text-red" : "text-text-primary"
                 )}
               >
-                {item.text}
+                {line.text}
               </div>
             ))}
-            {/* Input Line */}
-            <div className="flex items-center gap-2 mt-1.5 pt-1">
-              <span className="text-green font-semibold flex-shrink-0">{currentPath}&gt;</span>
+            <div className="flex items-center gap-2">
+              <span className="flex-shrink-0 text-text-primary">{PROMPT}</span>
               <input
                 ref={inputRef}
                 type="text"
                 value={currentInput}
                 onChange={(e) => setCurrentInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-transparent text-text-primary outline-none font-mono text-xs"
-                placeholder="Type command ('help', 'petral', 'projects')..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleCommand(currentInput);
+                    setCurrentInput("");
+                  } else if (e.key === "Escape") {
+                    setCurrentInput("");
+                  }
+                }}
+                className="flex-1 bg-transparent text-text-primary outline-none font-mono text-[13px] caret-text-primary"
                 spellCheck={false}
+                aria-label="Terminal input"
               />
             </div>
           </div>

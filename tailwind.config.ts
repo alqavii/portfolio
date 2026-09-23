@@ -9,19 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        base: {
-          DEFAULT: "var(--theme-base)",
-          "50": "var(--theme-surface-3)",
-          "100": "var(--theme-surface-4)",
-          "200": "#6c7086",
-          "300": "#7f849c",
-          "400": "#9399b2",
-          "500": "#a6adc8",
-          "600": "#bac2de",
-          "700": "#cdd6f4",
-          "800": "#f5e0dc",
-          "900": "#f9e2af",
-        },
+        editor: "var(--theme-base)",
         surface: {
           DEFAULT: "var(--theme-surface-2)",
           "0": "var(--theme-surface-0)",
@@ -30,12 +18,16 @@ const config: Config = {
           "3": "var(--theme-surface-3)",
           "4": "var(--theme-surface-4)",
         },
-        overlay: {
-          DEFAULT: "var(--theme-text-tertiary)",
-          "0": "var(--theme-text-tertiary)",
-          "1": "var(--theme-text-secondary)",
-          "2": "var(--theme-text-primary)",
+        titlebar: "var(--theme-titlebar)",
+        activitybar: "var(--theme-activitybar)",
+        tab: "var(--theme-tab-inactive)",
+        panel: "var(--theme-panel)",
+        statusbar: {
+          DEFAULT: "var(--theme-statusbar)",
+          fg: "var(--theme-statusbar-fg)",
+          hover: "var(--theme-statusbar-hover)",
         },
+        input: "var(--theme-input)",
         text: {
           DEFAULT: "var(--theme-text-primary)",
           primary: "var(--theme-text-primary)",
@@ -46,83 +38,55 @@ const config: Config = {
           DEFAULT: "var(--theme-blue)",
           light: "var(--theme-blue-light)",
         },
-        lavender: {
-          DEFAULT: "var(--theme-blue-light)",
+        green: "var(--theme-green)",
+        red: "var(--theme-red)",
+        yellow: "var(--theme-yellow)",
+        peach: "var(--theme-peach)",
+        mauve: "var(--theme-mauve)",
+        accent: {
+          DEFAULT: "var(--theme-accent)",
+          muted: "var(--theme-accent-muted)",
         },
-        sapphire: {
-          DEFAULT: "var(--theme-blue)",
+        border: {
+          DEFAULT: "var(--theme-border)",
+          strong: "var(--theme-border-strong)",
         },
-        sky: {
-          DEFAULT: "var(--theme-blue-light)",
-        },
-        teal: {
-          DEFAULT: "var(--theme-green)",
-        },
-        green: {
-          DEFAULT: "var(--theme-green)",
-        },
-        yellow: {
-          DEFAULT: "var(--theme-yellow)",
-        },
-        peach: {
-          DEFAULT: "var(--theme-peach)",
-        },
-        maroon: {
-          DEFAULT: "var(--theme-red)",
-        },
-        red: {
-          DEFAULT: "var(--theme-red)",
-        },
-        mauve: {
-          DEFAULT: "var(--theme-mauve)",
-        },
-        pink: {
-          DEFAULT: "var(--theme-mauve)",
-        },
-        flamingo: {
-          DEFAULT: "var(--theme-peach)",
-        },
-        rosewater: {
-          DEFAULT: "#f5e0dc",
-        },
-        themeBorder: "var(--theme-border)",
-        border: "var(--theme-border)",
-        accent: "var(--theme-accent)",
       },
       borderColor: {
         DEFAULT: "var(--theme-border)",
-        border: "var(--theme-border)",
       },
       fontFamily: {
         mono: [
-          "ui-monospace",
+          "Cascadia Code",
+          "Consolas",
           "SFMono-Regular",
           "Menlo",
-          "Monaco",
-          "Consolas",
-          "'Liberation Mono'",
-          "'Courier New'",
+          "ui-monospace",
           "monospace",
         ],
         sans: [
           "-apple-system",
           "BlinkMacSystemFont",
-          "'Segoe UI'",
-          "Roboto",
-          "Helvetica",
-          "Arial",
+          "Segoe WPC",
+          "Segoe UI",
+          "system-ui",
+          "Ubuntu",
           "sans-serif",
         ],
       },
-      animation: {
-        "pulse-subtle": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "glow": "glow 2s ease-in-out infinite alternate",
+      fontSize: {
+        "2xs": ["10px", { lineHeight: "14px" }],
+        xs: ["11px", { lineHeight: "16px" }],
+        sm: ["12px", { lineHeight: "18px" }],
+        base: ["13px", { lineHeight: "20px" }],
+        md: ["14px", { lineHeight: "22px" }],
+        lg: ["16px", { lineHeight: "24px" }],
+        xl: ["19px", { lineHeight: "28px" }],
+        "2xl": ["24px", { lineHeight: "32px" }],
+        "3xl": ["28px", { lineHeight: "36px" }],
       },
-      keyframes: {
-        glow: {
-          "0%": { boxShadow: "0 0 5px rgba(56, 189, 248, 0.2)" },
-          "100%": { boxShadow: "0 0 15px rgba(56, 189, 248, 0.5)" },
-        },
+      maxWidth: {
+        prose: "72ch",
       },
     },
   },

@@ -2,25 +2,25 @@
   {
     "id": "petral",
     "name": "petral",
-    "displayName": "Petral — Crude Oil Trading Desk Dashboard",
+    "displayName": "petral",
     "githubUrl": "https://github.com/alqavii/petral",
     "demoUrl": "https://petral.xyz",
-    "description": "A reliable, sourced and proxy-labelled aggregation and synthesis dashboard for physical crude trading desks. Descriptive and diagnostic analytics: levels, spreads, z-scores, carry framing, and Nelson-Siegel curves."
+    "description": "Crude oil trading desk dashboard"
   },
   {
     "id": "qtc-quant",
     "name": "qtc-quant",
-    "displayName": "qtc-quant — Multi-Team Quant Trading Platform",
+    "displayName": "qtc-quant",
     "githubUrl": "https://github.com/alqavii/qtc",
     "demoUrl": "/demos/qtc",
-    "description": "Production quantitative trading competition platform for QT Capital Alpha. Real-time execution pipeline, team leaderboard, and MDI workstation."
+    "description": "Algorithmic trading competition platform"
   },
   {
     "id": "ssvi-surface",
     "name": "ssvi-surface",
-    "displayName": "ssvi-surface — 3D Volatility Surface Calibration",
+    "displayName": "ssvi-surface",
     "githubUrl": "https://github.com/alqavii/ssvi-surface",
     "demoUrl": "/demos/ssvi",
-    "description": "Surface SVI (SSVI) parametric implied volatility surface calibration engine with 3D WebGL visualization and arbitrage diagnostics."
+    "description": "SSVI implied volatility surface"
   }
 ]

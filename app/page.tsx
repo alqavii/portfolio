@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Folder, Command } from "lucide-react";
+import { Folder } from "lucide-react";
 import ActivityBar from "@/components/ActivityBar";
 import Sidebar from "@/components/Sidebar";
 import Editor from "@/components/Editor";
@@ -10,6 +10,7 @@ import MenuBar from "@/components/MenuBar";
 import StatusBar from "@/components/StatusBar";
 import CommandPalette from "@/components/CommandPalette";
 import { FileSystem, FileSystemFile } from "@/lib/fileSystem";
+import { DEFAULT_THEME, THEME_STORAGE_KEY, isTheme } from "@/lib/themes";
 
 export default function Home() {
   const [activeView, setActiveView] = useState("explorer");
@@ -29,17 +30,16 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [activeTheme, setActiveTheme] = useState("oled");
+  const [activeTheme, setActiveTheme] = useState<string>(DEFAULT_THEME);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Load saved theme from localStorage if available
   useEffect(() => {
     try {
-      const savedTheme = localStorage.getItem("alqavi_portfolio_theme");
-      if (savedTheme) {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      if (savedTheme && isTheme(savedTheme)) {
         setActiveTheme(savedTheme);
       }
     } catch {
@@ -50,7 +50,7 @@ export default function Home() {
   const handleSetTheme = (theme: string) => {
     setActiveTheme(theme);
     try {
-      localStorage.setItem("alqavi_portfolio_theme", theme);
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // ignore
     }
@@ -141,7 +141,6 @@ export default function Home() {
       setCustomFiles((prev) =>
         prev.map((f) => (f.id === activeFile ? fileSystem.getFile(activeFile)! : f))
       );
-      alert("File saved!");
     } else if (activeFile === "alqavi.md") {
       downloadFile("alqavi.md", editedContent || "");
     } else if (activeFile === "contact.md") {
@@ -172,31 +171,10 @@ export default function Home() {
         return;
       }
 
-      if (activeFile === "alqavi.md") {
-        fetch("/api/alqavi")
-          .then((res) => res.json())
-          .then((data) => setEditedContent(data.content))
-          .catch(() => setEditedContent(""));
-        return;
-      }
-
-      if (activeFile === "contact.md") {
-        fetch("/api/contact")
-          .then((res) => res.json())
-          .then((data) => setEditedContent(data.content))
-          .catch(() => setEditedContent(""));
-        return;
-      }
-
-      if (activeFile.includes("petral")) {
-        fetch("/api/petral")
-          .then((res) => res.json())
-          .then((data) => setEditedContent(data.content))
-          .catch(() => setEditedContent(""));
-        return;
-      }
-
-      setEditedContent("");
+      fetch(`/api/content?file=${encodeURIComponent(activeFile)}`)
+        .then((res) => res.json())
+        .then((data) => setEditedContent(data.content ?? ""))
+        .catch(() => setEditedContent(""));
     } else {
       setEditorMode("view");
       setEditedContent("");
@@ -248,7 +226,7 @@ export default function Home() {
   return (
     <div 
       data-theme={activeTheme}
-      className="h-screen w-screen flex flex-col overflow-hidden bg-base text-text-primary font-mono select-none"
+      className="h-screen w-screen flex flex-col overflow-hidden bg-editor text-text-primary select-none"
     >
       {/* Menu Bar */}
       <MenuBar
@@ -263,8 +241,6 @@ export default function Home() {
           setMobileSidebarOpen(!mobileSidebarOpen);
         }}
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
-        onSetTheme={handleSetTheme}
-        activeTheme={activeTheme}
         mobileMenuOpen={mobileMenuOpen}
         onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
@@ -282,7 +258,7 @@ export default function Home() {
         {/* Mobile Sidebar Overlay */}
         {mobileSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
             onClick={() => setMobileSidebarOpen(false)}
           />
         )}
@@ -341,7 +317,7 @@ export default function Home() {
         {/* Desktop Sidebar Resizer */}
         {activeView && (
           <div
-            className="hidden md:block w-[1px] cursor-col-resize hover:bg-blue/60 transition-colors flex-shrink-0 bg-border"
+            className="hidden md:block w-[1px] cursor-col-resize hover:bg-accent transition-colors flex-shrink-0 bg-border"
             onMouseDown={(e) => {
               e.preventDefault();
               const startX = e.clientX;
@@ -377,7 +353,7 @@ export default function Home() {
             setActiveView("explorer");
             setMobileSidebarOpen(true);
           }}
-          className="md:hidden fixed bottom-10 right-4 z-30 bg-blue text-base px-3.5 py-2 rounded-full shadow-2xl hover:bg-blue-light transition-all flex items-center gap-2 text-xs font-bold font-mono"
+          className="md:hidden fixed bottom-9 right-4 z-30 bg-surface-2 text-text-primary border border-border-strong px-3 py-2 rounded shadow-lg hover:bg-surface-3 transition-colors flex items-center gap-2 text-sm"
         >
           <Folder size={16} />
           <span>Files</span>
@@ -403,7 +379,7 @@ export default function Home() {
           {/* Terminal Vertical Resizer */}
           {!terminalCollapsed && (
             <div
-              className="h-[1px] cursor-row-resize hover:bg-blue/60 transition-colors flex-shrink-0 bg-border"
+              className="h-[1px] cursor-row-resize hover:bg-accent transition-colors flex-shrink-0 bg-border"
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startY = e.clientY;
@@ -445,12 +421,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* VS Code Bottom Status Bar */}
       <StatusBar
         activeFile={activeFile}
-        activeTheme={activeTheme}
-        onThemeClick={() => setCommandPaletteOpen(true)}
-        terminalCollapsed={terminalCollapsed}
         onToggleTerminal={() => setTerminalCollapsed(!terminalCollapsed)}
       />
 

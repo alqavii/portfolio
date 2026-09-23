@@ -1,16 +1,7 @@
 "use client";
 
 import React from "react";
-import { 
-  Folder, 
-  Search, 
-  GitBranch, 
-  Play, 
-  Box, 
-  Settings, 
-  Palette,
-  Github
-} from "lucide-react";
+import { Files, Search, GitBranch, Settings, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ActivityBarProps {
@@ -19,44 +10,40 @@ interface ActivityBarProps {
   onThemeClick?: () => void;
 }
 
-export default function ActivityBar({ 
-  activeView, 
+export default function ActivityBar({
+  activeView,
   onViewChange,
-  onThemeClick 
+  onThemeClick,
 }: ActivityBarProps) {
   const items = [
-    { id: "explorer", icon: Folder, label: "Explorer (Files & Projects)" },
-    { id: "search", icon: Search, label: "Search across Portfolio" },
-    { id: "git", icon: GitBranch, label: "Source Control (GitHub Repos)" },
-    { id: "debug", icon: Play, label: "Run and Debug" },
-    { id: "extensions", icon: Box, label: "Extensions (Skills & Tech Stack)" },
+    { id: "explorer", icon: Files, label: "Explorer" },
+    { id: "search", icon: Search, label: "Search" },
+    { id: "git", icon: GitBranch, label: "Source Control" },
   ];
 
   return (
-    <div className="w-12 bg-surface-0 flex flex-col items-center py-2 border-r border-border h-full select-none z-20">
-      {/* Top Activity Items */}
-      <div className="flex flex-col items-center gap-1 w-full">
+    <div className="w-12 bg-activitybar flex flex-col items-center border-r border-border h-full select-none z-20">
+      <div className="flex flex-col items-center w-full">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
-          
+
           return (
             <button
               key={item.id}
               onClick={() => onViewChange(isActive ? "" : item.id)}
               className={cn(
-                "w-full h-11 flex items-center justify-center relative transition-colors group",
+                "w-full h-12 flex items-center justify-center relative",
                 isActive
                   ? "text-text-primary"
-                  : "text-text-tertiary hover:text-text-secondary hover:bg-surface-1/40"
+                  : "text-text-tertiary hover:text-text-primary"
               )}
               title={item.label}
             >
-              {/* VS Code active left bar */}
               {isActive && (
-                <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue rounded-r" />
+                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent" />
               )}
-              <Icon size={20} className={cn(isActive && "text-blue")} />
+              <Icon size={22} strokeWidth={1.5} />
             </button>
           );
         })}
@@ -64,27 +51,23 @@ export default function ActivityBar({
 
       <div className="flex-1" />
 
-      {/* Bottom Activity Items */}
-      <div className="flex flex-col items-center gap-1 w-full pb-1">
-        {/* Theme Picker */}
-        <button
-          onClick={onThemeClick}
-          className="w-full h-10 flex items-center justify-center text-text-tertiary hover:text-mauve hover:bg-surface-1/40 transition-colors"
-          title="Change Color Theme"
-        >
-          <Palette size={18} />
-        </button>
-
-        {/* GitHub Link */}
+      <div className="flex flex-col items-center w-full">
         <a
           href="https://github.com/alqavii"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full h-10 flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-surface-1/40 transition-colors"
-          title="AlQavi's GitHub Profile"
+          className="w-full h-12 flex items-center justify-center text-text-tertiary hover:text-text-primary"
+          title="GitHub"
         >
-          <Github size={18} />
+          <Github size={22} strokeWidth={1.5} />
         </a>
+        <button
+          onClick={onThemeClick}
+          className="w-full h-12 flex items-center justify-center text-text-tertiary hover:text-text-primary"
+          title="Color Theme"
+        >
+          <Settings size={22} strokeWidth={1.5} />
+        </button>
       </div>
     </div>
   );
