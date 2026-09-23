@@ -23,6 +23,7 @@ interface EditorProps {
   activeFile: string | null;
   onFileClose: (file: string) => void;
   onFileSelect: (file: string) => void;
+  onOpenFile?: (file: string) => void;
   fileSystem?: FileSystem;
   customFiles?: FileSystemFile[];
   editorMode?: "view" | "edit";
@@ -41,6 +42,7 @@ export default function Editor({
   activeFile,
   onFileClose,
   onFileSelect,
+  onOpenFile,
   fileSystem,
   editorMode = "view",
   editedContent = "",
@@ -101,7 +103,7 @@ export default function Editor({
 
   const isEditable = () => {
     if (!activeFile) return false;
-    if (activeFile === "alqavi.md" || activeFile === "contact.md") return true;
+    if (activeFile === "alqavi.md") return true;
     return Boolean(fileSystem?.getFile(activeFile));
   };
 
@@ -306,9 +308,25 @@ export default function Editor({
                   ul: ({ node, ...props }) => <ul className="list-disc text-md text-text-primary my-4 pl-8" {...props} />,
                   ol: ({ node, ...props }) => <ol className="list-decimal text-md text-text-primary my-4 pl-8" {...props} />,
                   li: ({ node, ...props }) => <li className="my-0.5" {...props} />,
-                  a: ({ node, ...props }) => (
-                    <a className="text-blue hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
-                  ),
+                  a: ({ node, href, ...props }) => {
+                    // Links to a project demo open its preview tab instead of a new browser tab
+                    const project = projectsData.find((p) => p.demoUrl === href);
+                    return (
+                      <a
+                        className="text-blue hover:underline"
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (project && onOpenFile) {
+                            e.preventDefault();
+                            onOpenFile(`projects/${project.id}/${project.name}`);
+                          }
+                        }}
+                        {...props}
+                      />
+                    );
+                  },
                   table: ({ node, ...props }) => (
                     <div className="overflow-x-auto my-4 scrollbar-thin">
                       <table className="text-md tnum border-collapse" {...props} />

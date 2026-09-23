@@ -116,7 +116,6 @@ export default function Sidebar({
 
     const searchableItems = [
       { fileId: "alqavi.md", title: "alqavi.md", snippet: "1st Year Chemical Engineering Student @ Sheffield" },
-      { fileId: "contact.md", title: "contact.md", snippet: "alqavihasan@gmail.com" },
       ...projectsData.map((p) => ({
         fileId: `projects/${p.id}/README.md`,
         title: `${p.name}/README.md`,
@@ -224,7 +223,6 @@ export default function Sidebar({
                 )}
 
                 <FileRow active={activeFile === "alqavi.md"} onOpen={() => onFileClick("alqavi.md")} name="alqavi.md" depth={1} />
-                <FileRow active={activeFile === "contact.md"} onOpen={() => onFileClick("contact.md")} name="contact.md" depth={1} />
               </>
             )}
           </div>

@@ -1,319 +1,832 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Pause, Play } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  Monitor, 
+  TrendingUp, 
+  Activity, 
+  Users, 
+  Clock, 
+  DollarSign, 
+  ShieldCheck, 
+  Radio, 
+  Play, 
+  Pause, 
+  RotateCw,
+  ExternalLink,
+  ChevronDown,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  Layers,
+  Cpu
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Position {
-  symbol: string;
-  shares: number;
-  avgPrice: number;
-  currentPrice: number;
-}
-
-interface Team {
+interface TeamData {
   id: string;
+  name: string;
+  rank: number;
   portfolioValue: number;
+  initialCapital: number;
+  totalReturn: number;
   dailyPnL: number;
-  sharpe: number;
-  sortino: number;
+  dailyReturn: number;
+  sharpeRatio: number;
+  sortinoRatio: number;
   maxDrawdown: number;
-  positions: Position[];
+  totalTrades: number;
+  winRate: number;
+  status: "ACTIVE" | "REBALANCING" | "IDLE";
+  positions: {
+    symbol: string;
+    shares: number;
+    avgPrice: number;
+    currentPrice: number;
+    side: "LONG" | "SHORT";
+  }[];
 }
 
-interface Trade {
-  id: number;
-  time: string;
-  team: string;
+interface TradeExecution {
+  id: string;
+  timestamp: string;
   symbol: string;
   side: "BUY" | "SELL";
-  qty: number;
+  shares: number;
   price: number;
+  slippage: number;
+  venue: string;
 }
 
-const INITIAL_CAPITAL = 100000;
-
-const PRICES: Record<string, number> = {
-  NVDA: 124.5, AAPL: 228.4, MSFT: 436.2, TSLA: 241.8, SPY: 558.1, AMD: 156.8,
-  GOOGL: 182.4, META: 518.2, AMZN: 186.1, NFLX: 672.3, QQQ: 476.5, IWM: 219.8,
-  JPM: 208.4, GS: 485.1, XLF: 42.3, COIN: 222.0, TLT: 95.1,
-};
-
-const pos = (symbol: string, shares: number, avgPrice: number): Position => ({
-  symbol, shares, avgPrice, currentPrice: PRICES[symbol],
-});
-
-const INITIAL_TEAMS: Team[] = [
-  { id: "team-kappa", portfolioValue: 148420.5, dailyPnL: 3410.2, sharpe: 2.45, sortino: 3.18, maxDrawdown: 3.82,
-    positions: [pos("NVDA", 140, 118.2), pos("AAPL", 210, 220.1), pos("MSFT", -65, 442.8), pos("TSLA", 95, 232.4), pos("SPY", 80, 550.2)] },
-  { id: "team-alpha", portfolioValue: 139120.0, dailyPnL: 1890.4, sharpe: 2.18, sortino: 2.74, maxDrawdown: 4.65,
-    positions: [pos("AMD", 180, 152.4), pos("GOOGL", 130, 178.1), pos("META", 70, 510.5)] },
-  { id: "team-sigma", portfolioValue: 131840.25, dailyPnL: 940.1, sharpe: 1.95, sortino: 2.41, maxDrawdown: 5.12,
-    positions: [pos("AMZN", 160, 182.2), pos("NFLX", 45, 660.4)] },
-  { id: "team-delta", portfolioValue: 125600.8, dailyPnL: -420.5, sharpe: 1.72, sortino: 2.1, maxDrawdown: 6.4,
-    positions: [pos("QQQ", 110, 472.0), pos("IWM", -150, 218.4)] },
-  { id: "team-omega", portfolioValue: 119850.0, dailyPnL: 620.0, sharpe: 1.54, sortino: 1.88, maxDrawdown: 7.1,
-    positions: [pos("JPM", 90, 205.2), pos("GS", 40, 480.0)] },
-  { id: "team-beta", portfolioValue: 114220.4, dailyPnL: 210.8, sharpe: 1.41, sortino: 1.65, maxDrawdown: 4.1,
-    positions: [pos("SPY", 120, 552.0), pos("XLF", -200, 42.1)] },
-  { id: "team-gamma", portfolioValue: 108940.0, dailyPnL: -810.0, sharpe: 1.15, sortino: 1.3, maxDrawdown: 9.8,
-    positions: [pos("COIN", 60, 215.0)] },
-  { id: "team-theta", portfolioValue: 102450.1, dailyPnL: 140.2, sharpe: 0.98, sortino: 1.12, maxDrawdown: 11.2,
-    positions: [pos("TLT", 150, 94.2)] },
+const INITIAL_TEAMS: TeamData[] = [
+  {
+    id: "alqavi_systems",
+    name: "ALQAVI_SYSTEMS",
+    rank: 1,
+    portfolioValue: 148420.50,
+    initialCapital: 100000,
+    totalReturn: 48.42,
+    dailyPnL: 3410.20,
+    dailyReturn: 2.35,
+    sharpeRatio: 2.45,
+    sortinoRatio: 3.18,
+    maxDrawdown: 3.82,
+    totalTrades: 1482,
+    winRate: 68.4,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "NVDA", shares: 140, avgPrice: 118.20, currentPrice: 124.50, side: "LONG" },
+      { symbol: "AAPL", shares: 210, avgPrice: 220.10, currentPrice: 228.40, side: "LONG" },
+      { symbol: "MSFT", shares: -65, avgPrice: 442.80, currentPrice: 436.20, side: "SHORT" },
+      { symbol: "TSLA", shares: 95, avgPrice: 232.40, currentPrice: 241.80, side: "LONG" },
+      { symbol: "SPY", shares: 80, avgPrice: 550.20, currentPrice: 558.10, side: "LONG" },
+    ]
+  },
+  {
+    id: "alpha_prime",
+    name: "ALPHA_PRIME",
+    rank: 2,
+    portfolioValue: 139120.00,
+    initialCapital: 100000,
+    totalReturn: 39.12,
+    dailyPnL: 1890.40,
+    dailyReturn: 1.38,
+    sharpeRatio: 2.18,
+    sortinoRatio: 2.74,
+    maxDrawdown: 4.65,
+    totalTrades: 1320,
+    winRate: 64.2,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "AMD", shares: 180, avgPrice: 152.40, currentPrice: 156.80, side: "LONG" },
+      { symbol: "GOOGL", shares: 130, avgPrice: 178.10, currentPrice: 182.40, side: "LONG" },
+      { symbol: "META", shares: 70, avgPrice: 510.50, currentPrice: 518.20, side: "LONG" },
+    ]
+  },
+  {
+    id: "quant_x",
+    name: "QUANT_X_LABS",
+    rank: 3,
+    portfolioValue: 131840.25,
+    initialCapital: 100000,
+    totalReturn: 31.84,
+    dailyPnL: 940.10,
+    dailyReturn: 0.72,
+    sharpeRatio: 1.95,
+    sortinoRatio: 2.41,
+    maxDrawdown: 5.12,
+    totalTrades: 1640,
+    winRate: 61.8,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "AMZN", shares: 160, avgPrice: 182.20, currentPrice: 186.10, side: "LONG" },
+      { symbol: "NFLX", shares: 45, avgPrice: 660.40, currentPrice: 672.30, side: "LONG" },
+    ]
+  },
+  {
+    id: "delta_force",
+    name: "DELTA_FORCE",
+    rank: 4,
+    portfolioValue: 125600.80,
+    initialCapital: 100000,
+    totalReturn: 25.60,
+    dailyPnL: -420.50,
+    dailyReturn: -0.33,
+    sharpeRatio: 1.72,
+    sortinoRatio: 2.10,
+    maxDrawdown: 6.40,
+    totalTrades: 980,
+    winRate: 59.4,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "QQQ", shares: 110, avgPrice: 472.00, currentPrice: 476.50, side: "LONG" },
+      { symbol: "IWM", shares: -150, avgPrice: 218.40, currentPrice: 219.80, side: "SHORT" },
+    ]
+  },
+  {
+    id: "sigma_capital",
+    name: "SIGMA_CAPITAL",
+    rank: 5,
+    portfolioValue: 119850.00,
+    initialCapital: 100000,
+    totalReturn: 19.85,
+    dailyPnL: 620.00,
+    dailyReturn: 0.52,
+    sharpeRatio: 1.54,
+    sortinoRatio: 1.88,
+    maxDrawdown: 7.10,
+    totalTrades: 1110,
+    winRate: 56.5,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "JPM", shares: 90, avgPrice: 205.20, currentPrice: 208.40, side: "LONG" },
+      { symbol: "GS", shares: 40, avgPrice: 480.00, currentPrice: 485.10, side: "LONG" },
+    ]
+  },
+  {
+    id: "beta_neutral",
+    name: "BETA_NEUTRAL",
+    rank: 6,
+    portfolioValue: 114220.40,
+    initialCapital: 100000,
+    totalReturn: 14.22,
+    dailyPnL: 210.80,
+    dailyReturn: 0.18,
+    sharpeRatio: 1.41,
+    sortinoRatio: 1.65,
+    maxDrawdown: 4.10,
+    totalTrades: 840,
+    winRate: 55.2,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "SPY", shares: 120, avgPrice: 552.00, currentPrice: 558.10, side: "LONG" },
+      { symbol: "XLF", shares: -200, avgPrice: 42.10, currentPrice: 42.30, side: "SHORT" },
+    ]
+  },
+  {
+    id: "apex_strat",
+    name: "APEX_STRATEGY",
+    rank: 7,
+    portfolioValue: 108940.00,
+    initialCapital: 100000,
+    totalReturn: 8.94,
+    dailyPnL: -810.00,
+    dailyReturn: -0.74,
+    sharpeRatio: 1.15,
+    sortinoRatio: 1.30,
+    maxDrawdown: 9.80,
+    totalTrades: 720,
+    winRate: 51.4,
+    status: "ACTIVE",
+    positions: [
+      { symbol: "COIN", shares: 60, avgPrice: 215.00, currentPrice: 222.00, side: "LONG" },
+    ]
+  },
+  {
+    id: "stochastic_flow",
+    name: "STOCHASTIC_FLOW",
+    rank: 8,
+    portfolioValue: 102450.10,
+    initialCapital: 100000,
+    totalReturn: 2.45,
+    dailyPnL: 140.20,
+    dailyReturn: 0.14,
+    sharpeRatio: 0.98,
+    sortinoRatio: 1.12,
+    maxDrawdown: 11.20,
+    totalTrades: 640,
+    winRate: 48.9,
+    status: "IDLE",
+    positions: [
+      { symbol: "TLT", shares: 150, avgPrice: 94.20, currentPrice: 95.10, side: "LONG" },
+    ]
+  }
 ];
 
-const usd = (v: number) =>
-  v.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
-const signed = (v: number, suffix = "") => `${v >= 0 ? "+" : ""}${v.toFixed(2)}${suffix}`;
-const signedUsd = (v: number) => `${v >= 0 ? "+" : "-"}${usd(Math.abs(v))}`;
-const pnlColor = (v: number) => (v >= 0 ? "text-[#4ec9b0]" : "text-[#f14c4c]");
-const totalReturn = (t: Team) => ((t.portfolioValue - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100;
-const now = () => new Date().toTimeString().slice(0, 8);
+const SYMBOL_PRICES: Record<string, number> = {
+  NVDA: 124.5, AAPL: 228.4, MSFT: 436.2, TSLA: 241.8,
+  SPY: 558.1, AMD: 156.8, META: 518.2, GOOGL: 182.4,
+};
 
-function randomTrade(id: number, teams: Team[]): Trade {
-  const team = teams[Math.floor(Math.random() * teams.length)];
-  const symbols = team.positions.map((p) => p.symbol);
-  const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-  return {
-    id,
-    time: now(),
-    team: team.id,
-    symbol,
-    side: Math.random() > 0.45 ? "BUY" : "SELL",
-    qty: Math.floor(Math.random() * 40) + 10,
-    price: PRICES[symbol] * (1 + (Math.random() - 0.5) * 0.004),
-  };
-}
+let orderSeq = 94822;
 
-function Panel({ title, right, children, className }: {
-  title: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("flex flex-col min-h-0 border-[#262626]", className)}>
-      <div className="h-9 px-4 flex items-center justify-between border-b border-[#262626] flex-shrink-0">
-        <h2 className="text-[13px] font-medium text-[#e5e5e5]">{title}</h2>
-        {right && <div className="text-xs text-[#8a8a8a]">{right}</div>}
-      </div>
-      <div className="flex-1 min-h-0 overflow-auto">{children}</div>
-    </section>
-  );
-}
+const INITIAL_TRADES: TradeExecution[] = [
+  { id: "ORD-94821", timestamp: "16:28:42", symbol: "NVDA", side: "BUY", shares: 25, price: 124.52, slippage: 0.008, venue: "NASDAQ" },
+  { id: "ORD-94820", timestamp: "16:28:15", symbol: "AAPL", side: "BUY", shares: 40, price: 228.38, slippage: 0.005, venue: "ARCA" },
+  { id: "ORD-94819", timestamp: "16:27:54", symbol: "MSFT", side: "SELL", shares: 15, price: 436.22, slippage: 0.012, venue: "BATS" },
+  { id: "ORD-94818", timestamp: "16:27:10", symbol: "TSLA", side: "BUY", shares: 30, price: 241.75, slippage: 0.015, venue: "NASDAQ" },
+  { id: "ORD-94817", timestamp: "16:26:38", symbol: "SPY", side: "BUY", shares: 10, price: 558.08, slippage: 0.003, venue: "NYSE" },
+];
 
-const th = "py-2 px-4 font-normal text-[#8a8a8a]";
-const td = "py-1.5 px-4";
+export default function QTCQuantDemo() {
+  const [teams, setTeams] = useState<TeamData[]>(INITIAL_TEAMS);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("alqavi_systems");
+  const [trades, setTrades] = useState<TradeExecution[]>(INITIAL_TRADES);
+  const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
+  const [currentTime, setCurrentTime] = useState<string>("");
+  const [flashKey, setFlashKey] = useState<Record<string, "up" | "down">>({});
 
-export default function QTCDemo() {
-  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
-  const [selectedId, setSelectedId] = useState(INITIAL_TEAMS[0].id);
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [running, setRunning] = useState(true);
-  const [clock, setClock] = useState("");
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId) || teams[0];
 
+  // Clock
   useEffect(() => {
-    setTrades(Array.from({ length: 8 }, (_, i) => randomTrade(i, INITIAL_TEAMS)));
-    setClock(now());
-    const id = setInterval(() => setClock(now()), 1000);
-    return () => clearInterval(id);
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(now.toISOString().slice(11, 19) + " UTC");
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
+  // Real-time live simulation engine (ticking prices, PnL micro-fluctuations, streaming fills)
   useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
+    if (!isLiveStreaming) return;
+
+    let flashTimeout: ReturnType<typeof setTimeout> | undefined;
+    const interval = setInterval(() => {
+      // 1. Fluctuate every team's value slightly
+      const deltas: Record<string, number> = {};
+      INITIAL_TEAMS.forEach((team) => {
+        deltas[team.id] = (Math.random() - 0.48) * 0.003; // Slight upward bias
+      });
+      setFlashKey(
+        Object.fromEntries(
+          Object.entries(deltas).map(([id, d]) => [id, d >= 0 ? "up" : "down"] as const)
+        )
+      );
+
       setTeams((prev) =>
         prev.map((team) => {
-          const value = team.portfolioValue * (1 + (Math.random() - 0.48) * 0.003);
+          const deltaPct = deltas[team.id];
+          const newPortVal = Math.max(80000, team.portfolioValue * (1 + deltaPct));
+          const newReturn = ((newPortVal - team.initialCapital) / team.initialCapital) * 100;
+          const newDailyPnL = team.dailyPnL + (newPortVal - team.portfolioValue);
+
+          // Randomize positions slightly for selected team
+          const newPositions = team.positions.map((pos) => {
+            const pDelta = (Math.random() - 0.48) * 0.004;
+            const newPrice = Math.max(1, pos.currentPrice * (1 + pDelta));
+            return { ...pos, currentPrice: Number(newPrice.toFixed(2)) };
+          });
+
           return {
             ...team,
-            portfolioValue: value,
-            dailyPnL: team.dailyPnL + (value - team.portfolioValue),
-            positions: team.positions.map((p) => ({
-              ...p,
-              currentPrice: p.currentPrice * (1 + (Math.random() - 0.48) * 0.004),
-            })),
+            portfolioValue: Number(newPortVal.toFixed(2)),
+            totalReturn: Number(newReturn.toFixed(2)),
+            dailyPnL: Number(newDailyPnL.toFixed(2)),
+            positions: newPositions,
           };
         })
       );
-      setTrades((prev) => [randomTrade(Date.now(), INITIAL_TEAMS), ...prev.slice(0, 19)]);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [running]);
 
-  const ranked = useMemo(
-    () => [...teams].sort((a, b) => b.portfolioValue - a.portfolioValue),
-    [teams]
-  );
-  const selected = teams.find((t) => t.id === selectedId) ?? teams[0];
+      // Clear flash after 800ms
+      clearTimeout(flashTimeout);
+      flashTimeout = setTimeout(() => setFlashKey({}), 800);
 
-  const equity = useMemo(() => {
-    const seed = selected.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    const n = 60;
-    const pts = Array.from({ length: n + 1 }, (_, i) => {
-      const trend = INITIAL_CAPITAL + ((selected.portfolioValue - INITIAL_CAPITAL) * i) / n;
-      const noise = (Math.sin(i * 0.7 + seed) + Math.cos(i * 1.3 + seed * 0.5)) * 1400 * Math.min(1, i / 6);
-      return trend + noise;
-    });
-    pts[n] = selected.portfolioValue;
-    const min = Math.min(...pts);
-    const max = Math.max(...pts);
-    const W = 600;
-    const H = 200;
-    const line = pts
-      .map((p, i) => `${(i / n) * W},${H - 8 - ((p - min) / (max - min || 1)) * (H - 16)}`)
-      .join(" ");
-    return { line, W, H, min, max };
-  }, [selected.id, selected.portfolioValue]);
+      // 2. Generate a simulated trade fill
+      const symbols = ["NVDA", "AAPL", "MSFT", "TSLA", "SPY", "AMD", "META", "GOOGL"];
+      const venues = ["NASDAQ", "ARCA", "BATS", "IEX", "NYSE"];
+      const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+      const randomSide = Math.random() > 0.45 ? "BUY" : "SELL";
+      const randomShares = Math.floor(Math.random() * 40) + 10;
+      const basePrice = SYMBOL_PRICES[randomSymbol];
+      const executedPrice = Number((basePrice * (1 + (Math.random() - 0.5) * 0.004)).toFixed(2));
+      const nowTime = new Date().toTimeString().split(" ")[0];
 
-  const ret = totalReturn(selected);
-  const stats = [
-    { label: "Value", value: usd(selected.portfolioValue) },
-    { label: "Today", value: signedUsd(selected.dailyPnL), color: pnlColor(selected.dailyPnL) },
-    { label: "Return", value: signed(ret, "%"), color: pnlColor(ret) },
-    { label: "Sharpe", value: selected.sharpe.toFixed(2) },
-    { label: "Sortino", value: selected.sortino.toFixed(2) },
-    { label: "Max drawdown", value: `${selected.maxDrawdown.toFixed(2)}%` },
-  ];
+      const newTrade: TradeExecution = {
+        id: `ORD-${orderSeq++}`,
+        timestamp: nowTime,
+        symbol: randomSymbol,
+        side: randomSide,
+        shares: randomShares,
+        price: executedPrice,
+        slippage: Number((Math.random() * 0.015).toFixed(4)),
+        venue: venues[Math.floor(Math.random() * venues.length)],
+      };
+
+      setTrades((prev) => [newTrade, ...prev.slice(0, 14)]);
+    }, 2800);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(flashTimeout);
+    };
+  }, [isLiveStreaming]);
+
+  // Synthetic equity curve points (30 historical data points)
+  const equityPoints = React.useMemo(() => {
+    const points = [];
+    let val = selectedTeam.initialCapital;
+    const target = selectedTeam.portfolioValue;
+    const step = (target - val) / 30;
+    const seed = selectedTeam.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    for (let i = 0; i <= 30; i++) {
+      const noise = (Math.sin(i * 0.8 + seed) + Math.cos(i * 1.2 + seed)) * 1200;
+      points.push(Math.round(val + noise));
+      val += step;
+    }
+    points[points.length - 1] = selectedTeam.portfolioValue;
+    return points;
+  }, [selectedTeam.id, selectedTeam.portfolioValue, selectedTeam.initialCapital]);
+
+  // Normalize SVG points for equity chart
+  const minVal = Math.min(...equityPoints) * 0.98;
+  const maxVal = Math.max(...equityPoints) * 1.02;
+  const svgWidth = 600;
+  const svgHeight = 160;
+
+  const polylinePoints = equityPoints
+    .map((p, idx) => {
+      const x = (idx / (equityPoints.length - 1)) * svgWidth;
+      const y = svgHeight - ((p - minVal) / (maxVal - minVal)) * (svgHeight - 20) - 10;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   return (
-    <div className="min-h-screen lg:h-screen w-full bg-[#141414] text-[#d4d4d4] text-[13px] flex flex-col font-sans tabular-nums">
-      <header className="h-11 px-4 border-b border-[#262626] flex items-center justify-between flex-shrink-0">
-        <div className="flex items-baseline gap-3">
-          <span className="font-semibold text-[#f5f5f5]">QTC</span>
-          <span className="text-[#8a8a8a]">Leaderboard</span>
+    <div className="min-h-screen w-full bg-[#000000] text-[#CCCCCC] font-mono text-xs select-none flex flex-col">
+      {/* ============================================================ */}
+      {/* 1. MDI TERMINAL TOP BAR                                       */}
+      {/* ============================================================ */}
+      <header className="border-b border-[#222222] bg-[#080808] px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+        {/* Left: Terminal Logo */}
+        <div className="flex items-center gap-3">
+          <div className="border border-[#00A0E8] p-1 bg-[#001828]">
+            <Monitor className="size-4 text-[#00A0E8]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[#00A0E8] text-sm tracking-wider">QTC TERMINAL</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#00A0E8]/20 text-[#00A0E8] border border-[#00A0E8]/40">
+                MDI v1.2
+              </span>
+            </div>
+            <div className="text-[10px] text-[#808080]">
+              QUANTITATIVE TRADING COMPETITION // EXECUTION ENVIRONMENT
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-[#8a8a8a]">
-          <span className="font-mono text-xs">{clock}</span>
+
+        {/* Center: Live Session Indicators */}
+        <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex items-center gap-1.5">
+            <Radio className={cn("size-3.5", isLiveStreaming ? "text-[#00C805] animate-pulse" : "text-[#808080]")} />
+            <span className={isLiveStreaming ? "text-[#00C805]" : "text-[#808080]"}>
+              {isLiveStreaming ? "LIVE SIMULATION ACTIVE" : "SIMULATION PAUSED"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 text-[#808080] border-l border-[#222222] pl-3">
+            <Clock className="size-3 text-[#FFAA00]" />
+            <span>{currentTime || "16:30:00 UTC"}</span>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1 text-[#808080] border-l border-[#222222] pl-3">
+            <span className="text-[#00C805]">NYSE: OPEN (SIM)</span>
+          </div>
+        </div>
+
+        {/* Right: Controls */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setRunning((r) => !r)}
-            className="p-1.5 rounded hover:bg-[#262626] hover:text-[#e5e5e5]"
-            title={running ? "Pause" : "Resume"}
+            onClick={() => setIsLiveStreaming(!isLiveStreaming)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#111111] hover:bg-[#1a1a1a] border border-[#333333] text-[11px] text-[#CCCCCC] transition-colors"
           >
-            {running ? <Pause size={14} /> : <Play size={14} />}
+            {isLiveStreaming ? <Pause className="size-3 text-[#FFAA00]" /> : <Play className="size-3 text-[#00C805]" />}
+            <span>{isLiveStreaming ? "Pause Ticks" : "Resume Ticks"}</span>
           </button>
+          
+          <a
+            href="https://github.com/alqavii/qtc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#00A0E8]/15 hover:bg-[#00A0E8]/25 text-[#00A0E8] border border-[#00A0E8]/30 text-[11px] font-semibold transition-colors"
+          >
+            <ExternalLink className="size-3" />
+            <span>GitHub</span>
+          </a>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b border-[#262626] flex-shrink-0">
-        {stats.map((s) => (
-          <div key={s.label} className="px-4 py-3">
-            <div className="text-xs text-[#8a8a8a]">{s.label}</div>
-            <div className={cn("text-base font-medium mt-0.5 text-[#f5f5f5]", s.color)}>{s.value}</div>
-          </div>
-        ))}
+      {/* ============================================================ */}
+      {/* 2. ARCHIVED / DEMO DISCLAIMER BANNER                          */}
+      {/* ============================================================ */}
+      <div className="bg-[#001018] border-b border-[#00A0E8]/30 px-4 py-1.5 flex items-center justify-between text-[11px] text-[#80B0D0]">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="size-3.5 text-[#FFAA00] flex-shrink-0" />
+          <span>
+            <strong className="text-[#FFAA00] uppercase tracking-wider">Demo:</strong> The competition has ended. Prices and fills are simulated.
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2">
-        <Panel title="Teams" className="lg:col-span-5 border-b lg:border-r">
-          <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#141414]">
-              <tr>
-                <th className={th}>#</th>
-                <th className={th}>Team</th>
-                <th className={cn(th, "text-right")}>Value</th>
-                <th className={cn(th, "text-right")}>Return</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranked.map((t, i) => {
-                const r = totalReturn(t);
-                return (
-                  <tr
-                    key={t.id}
-                    onClick={() => setSelectedId(t.id)}
-                    className={cn(
-                      "cursor-pointer",
-                      t.id === selectedId ? "bg-[#1f2a36]" : "hover:bg-[#1c1c1c]"
-                    )}
-                  >
-                    <td className={cn(td, "text-[#8a8a8a] w-8")}>{i + 1}</td>
-                    <td className={cn(td, "text-[#e5e5e5]")}>{t.id}</td>
-                    <td className={cn(td, "text-right")}>{usd(t.portfolioValue)}</td>
-                    <td className={cn(td, "text-right", pnlColor(r))}>{signed(r, "%")}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Panel>
+      {/* ============================================================ */}
+      {/* 3. EXECUTIVE KPI ROW FOR SELECTED TEAM                        */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b border-[#222222] bg-[#050505]">
+        <div className="p-3 border-r border-b sm:border-b-0 border-[#222222]">
+          <div className="text-[10px] text-[#808080] uppercase">Selected Team</div>
+          <div className="text-sm font-bold text-[#00A0E8] mt-0.5 truncate">{selectedTeam.name}</div>
+          <div className="text-[10px] text-[#00C805]">RANK #{selectedTeam.rank} OF 8</div>
+        </div>
 
-        <Panel title={`Equity: ${selected.id}`} className="lg:col-span-7 border-b">
-          <div className="h-full min-h-[200px] p-4 flex flex-col">
-            <svg viewBox={`0 0 ${equity.W} ${equity.H}`} preserveAspectRatio="none" className="w-full flex-1 min-h-[160px]">
-              {[0.25, 0.5, 0.75].map((f) => (
-                <line key={f} x1="0" x2={equity.W} y1={equity.H * f} y2={equity.H * f} stroke="#262626" />
-              ))}
-              <polyline
-                points={equity.line}
-                fill="none"
-                stroke="#4fc1ff"
-                strokeWidth="1.5"
-                vectorEffect="non-scaling-stroke"
-              />
-            </svg>
-            <div className="flex justify-between text-xs text-[#8a8a8a] pt-2">
-              <span>Low {usd(equity.min)}</span>
-              <span>High {usd(equity.max)}</span>
+        <div className={cn(
+          "p-3 border-r border-b sm:border-b-0 border-[#222222] transition-colors",
+          flashKey[selectedTeam.id] === "up" && "bg-[#00C805]/10",
+          flashKey[selectedTeam.id] === "down" && "bg-[#FF0000]/10"
+        )}>
+          <div className="text-[10px] text-[#808080] uppercase">Portfolio Value</div>
+          <div className="text-sm font-bold text-[#FFFFFF] mt-0.5 font-mono">
+            ${selectedTeam.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </div>
+          <div className={cn(
+            "text-[10px] flex items-center gap-0.5",
+            selectedTeam.dailyPnL >= 0 ? "text-[#00C805]" : "text-[#FF0000]"
+          )}>
+            {selectedTeam.dailyPnL >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
+            <span>
+              {selectedTeam.dailyPnL >= 0 ? "+" : "-"}$
+              {Math.abs(selectedTeam.dailyPnL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (24h)
+            </span>
+          </div>
+        </div>
+
+        <div className="p-3 border-r border-b sm:border-b-0 border-[#222222]">
+          <div className="text-[10px] text-[#808080] uppercase">Cumulative Return</div>
+          <div className={cn(
+            "text-sm font-bold mt-0.5 font-mono",
+            selectedTeam.totalReturn >= 0 ? "text-[#00C805]" : "text-[#FF0000]"
+          )}>
+            {selectedTeam.totalReturn >= 0 ? "+" : ""}{selectedTeam.totalReturn.toFixed(2)}%
+          </div>
+          <div className="text-[10px] text-[#808080]">BASE: $100,000.00</div>
+        </div>
+
+        <div className="p-3 border-r border-[#222222]">
+          <div className="text-[10px] text-[#808080] uppercase">Sharpe / Sortino</div>
+          <div className="text-sm font-bold text-[#FFAA00] mt-0.5 font-mono">
+            {selectedTeam.sharpeRatio.toFixed(2)} <span className="text-[#808080] font-normal">/</span> {selectedTeam.sortinoRatio.toFixed(2)}
+          </div>
+          <div className="text-[10px] text-[#808080]">ANNUALIZED 252d</div>
+        </div>
+
+        <div className="p-3 border-r border-[#222222]">
+          <div className="text-[10px] text-[#808080] uppercase">Max Drawdown</div>
+          <div className="text-sm font-bold text-[#FF6B6B] mt-0.5 font-mono">
+            -{selectedTeam.maxDrawdown.toFixed(2)}%
+          </div>
+          <div className="text-[10px] text-[#808080]">PEAK-TO-TROUGH</div>
+        </div>
+
+        <div className="p-3">
+          <div className="text-[10px] text-[#808080] uppercase">Execution Health</div>
+          <div className="text-sm font-bold text-[#00C805] mt-0.5 flex items-center gap-1.5">
+            <ShieldCheck className="size-4" />
+            <span>OPTIMAL</span>
+          </div>
+          <div className="text-[10px] text-[#808080]">{selectedTeam.totalTrades} FILLS • 12.4ms LAT</div>
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 4. MAIN 4-QUADRANT MDI GRID                                   */}
+      {/* ============================================================ */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden bg-[#000000]">
+        {/* ============================================================ */}
+        {/* LEFT COLUMN (5 COLS): LEADERBOARD & ACTIVE POSITIONS         */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-5 flex flex-col border-r border-[#222222] overflow-hidden">
+          {/* TOP-LEFT: TEAM RANKINGS LEADERBOARD */}
+          <div className="flex-1 flex flex-col border-b border-[#222222] overflow-hidden min-h-[260px]">
+            <div className="px-3 py-1.5 bg-[#0a0a0a] border-b border-[#222222] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-3.5 bg-[#00A0E8]" />
+                <Users className="size-3 text-[#00A0E8]" />
+                <span className="font-bold text-[#00A0E8] uppercase tracking-wider text-[11px]">
+                  TEAM LEADERBOARD
+                </span>
+              </div>
+              <span className="text-[10px] text-[#808080]">8 TEAMS ACTIVE</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-[#050505] text-[#808080] sticky top-0 border-b border-[#222222]">
+                  <tr>
+                    <th className="py-1.5 px-3">#</th>
+                    <th className="py-1.5 px-2">Team</th>
+                    <th className="py-1.5 px-2 text-right">Portfolio</th>
+                    <th className="py-1.5 px-2 text-right">Return</th>
+                    <th className="py-1.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#151515]">
+                  {teams.map((t) => {
+                    const isSelected = t.id === selectedTeamId;
+                    const flash = flashKey[t.id];
+                    return (
+                      <tr
+                        key={t.id}
+                        onClick={() => setSelectedTeamId(t.id)}
+                        className={cn(
+                          "cursor-pointer transition-colors",
+                          isSelected ? "bg-[#00223a] text-[#FFFFFF]" : "hover:bg-[#0c0c0c] text-[#AAAAAA]",
+                          flash === "up" && "bg-[#00C805]/15",
+                          flash === "down" && "bg-[#FF0000]/15"
+                        )}
+                      >
+                        <td className="py-2 px-3 font-bold text-[#808080]">{t.rank}</td>
+                        <td className="py-2 px-2 font-semibold text-[#00A0E8] truncate max-w-[120px]">
+                          {t.name}
+                        </td>
+                        <td className="py-2 px-2 text-right font-mono text-[#FFFFFF]">
+                          ${t.portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className={cn(
+                          "py-2 px-2 text-right font-mono font-semibold",
+                          t.totalReturn >= 0 ? "text-[#00C805]" : "text-[#FF0000]"
+                        )}>
+                          {t.totalReturn >= 0 ? "+" : ""}{t.totalReturn.toFixed(2)}%
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
+                            t.status === "ACTIVE" ? "bg-[#00C805]/20 text-[#00C805]" : "bg-[#808080]/20 text-[#808080]"
+                          )}>
+                            {t.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-        </Panel>
 
-        <Panel title="Positions" right={selected.id} className="lg:col-span-5 border-b lg:border-b-0 lg:border-r">
-          <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#141414]">
-              <tr>
-                <th className={th}>Symbol</th>
-                <th className={cn(th, "text-right")}>Qty</th>
-                <th className={cn(th, "text-right")}>Avg</th>
-                <th className={cn(th, "text-right")}>Last</th>
-                <th className={cn(th, "text-right")}>P&amp;L</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selected.positions.map((p) => {
-                const pnl = (p.currentPrice - p.avgPrice) * p.shares;
-                return (
-                  <tr key={p.symbol} className="hover:bg-[#1c1c1c]">
-                    <td className={cn(td, "text-[#e5e5e5]")}>{p.symbol}</td>
-                    <td className={cn(td, "text-right")}>{p.shares}</td>
-                    <td className={cn(td, "text-right text-[#8a8a8a]")}>{p.avgPrice.toFixed(2)}</td>
-                    <td className={cn(td, "text-right")}>{p.currentPrice.toFixed(2)}</td>
-                    <td className={cn(td, "text-right", pnlColor(pnl))}>{signed(pnl)}</td>
+          {/* BOTTOM-LEFT: ACTIVE PORTFOLIO POSITIONS */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-[240px]">
+            <div className="px-3 py-1.5 bg-[#0a0a0a] border-b border-[#222222] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-3.5 bg-[#FFAA00]" />
+                <Layers className="size-3 text-[#FFAA00]" />
+                <span className="font-bold text-[#FFAA00] uppercase tracking-wider text-[11px]">
+                  OPEN POSITIONS // {selectedTeam.name}
+                </span>
+              </div>
+              <span className="text-[10px] text-[#808080]">
+                {selectedTeam.positions.length} ACTIVE PAIRS
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-[#050505] text-[#808080] sticky top-0 border-b border-[#222222]">
+                  <tr>
+                    <th className="py-1.5 px-3">Asset</th>
+                    <th className="py-1.5 px-2">Side</th>
+                    <th className="py-1.5 px-2 text-right">Shares</th>
+                    <th className="py-1.5 px-2 text-right">Avg Entry</th>
+                    <th className="py-1.5 px-2 text-right">Mark</th>
+                    <th className="py-1.5 px-3 text-right">Unrealized</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Panel>
+                </thead>
+                <tbody className="divide-y divide-[#151515]">
+                  {selectedTeam.positions.map((pos) => {
+                    const pnl = pos.side === "LONG" 
+                      ? (pos.currentPrice - pos.avgPrice) * pos.shares
+                      : (pos.avgPrice - pos.currentPrice) * Math.abs(pos.shares);
+                    const pnlPct = ((pos.currentPrice - pos.avgPrice) / pos.avgPrice) * 100 * (pos.side === "SHORT" ? -1 : 1);
 
-        <Panel title="Fills" className="lg:col-span-7">
-          <table className="w-full text-left">
-            <thead className="sticky top-0 bg-[#141414]">
-              <tr>
-                <th className={th}>Time</th>
-                <th className={th}>Team</th>
-                <th className={th}>Symbol</th>
-                <th className={th}>Side</th>
-                <th className={cn(th, "text-right")}>Qty</th>
-                <th className={cn(th, "text-right")}>Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trades.map((t) => (
-                <tr key={t.id} className="hover:bg-[#1c1c1c]">
-                  <td className={cn(td, "font-mono text-xs text-[#8a8a8a]")}>{t.time}</td>
-                  <td className={td}>{t.team}</td>
-                  <td className={cn(td, "text-[#e5e5e5]")}>{t.symbol}</td>
-                  <td className={cn(td, t.side === "BUY" ? "text-[#4ec9b0]" : "text-[#f14c4c]")}>{t.side}</td>
-                  <td className={cn(td, "text-right")}>{t.qty}</td>
-                  <td className={cn(td, "text-right")}>{t.price.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Panel>
+                    return (
+                      <tr key={pos.symbol} className="hover:bg-[#0c0c0c] text-[#CCCCCC]">
+                        <td className="py-1.5 px-3 font-bold text-[#00A0E8]">{pos.symbol}</td>
+                        <td className="py-1.5 px-2">
+                          <span className={cn(
+                            "px-1 py-0.2 rounded text-[9px] font-bold",
+                            pos.side === "LONG" ? "bg-[#00C805]/20 text-[#00C805]" : "bg-[#FF0000]/20 text-[#FF0000]"
+                          )}>
+                            {pos.side}
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-2 text-right font-mono">{pos.shares}</td>
+                        <td className="py-1.5 px-2 text-right font-mono text-[#808080]">${pos.avgPrice.toFixed(2)}</td>
+                        <td className="py-1.5 px-2 text-right font-mono text-[#FFFFFF]">${pos.currentPrice.toFixed(2)}</td>
+                        <td className={cn(
+                          "py-1.5 px-3 text-right font-mono font-semibold",
+                          pnl >= 0 ? "text-[#00C805]" : "text-[#FF0000]"
+                        )}>
+                          {pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} ({pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(1)}%)
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* RIGHT COLUMN (7 COLS): EQUITY CURVE & LIVE STREAM             */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-7 flex flex-col overflow-hidden">
+          {/* TOP-RIGHT: EQUITY PERFORMANCE CURVE */}
+          <div className="flex-1 flex flex-col border-b border-[#222222] overflow-hidden min-h-[260px]">
+            <div className="px-3 py-1.5 bg-[#0a0a0a] border-b border-[#222222] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-3.5 bg-[#00C805]" />
+                <TrendingUp className="size-3 text-[#00C805]" />
+                <span className="font-bold text-[#00C805] uppercase tracking-wider text-[11px]">
+                  CUMULATIVE PERFORMANCE // {selectedTeam.name}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {["1D", "7D", "30D", "ALL"].map((tf) => (
+                  <button
+                    key={tf}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                      tf === "30D" ? "bg-[#00A0E8] text-[#000000]" : "bg-[#151515] text-[#808080] hover:text-[#FFFFFF]"
+                    )}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 p-3 flex flex-col justify-between bg-[#040404]">
+              {/* Dynamic SVG Equity Chart */}
+              <div className="relative w-full h-[160px] flex items-center justify-center">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible"
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    <linearGradient id="equityGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#00A0E8" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#00A0E8" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  
+                  {/* Grid lines */}
+                  <line x1="0" y1="40" x2={svgWidth} y2="40" stroke="#1c1c1c" strokeDasharray="3 3" />
+                  <line x1="0" y1="80" x2={svgWidth} y2="80" stroke="#1c1c1c" strokeDasharray="3 3" />
+                  <line x1="0" y1="120" x2={svgWidth} y2="120" stroke="#1c1c1c" strokeDasharray="3 3" />
+
+                  {/* Area fill */}
+                  <polygon
+                    points={`0,${svgHeight} ${polylinePoints} ${svgWidth},${svgHeight}`}
+                    fill="url(#equityGrad)"
+                  />
+
+                  {/* Main equity line */}
+                  <polyline
+                    points={polylinePoints}
+                    fill="none"
+                    stroke="#00A0E8"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+
+                  {/* End dot */}
+                  <circle
+                    cx={svgWidth}
+                    cy={svgHeight - ((equityPoints[equityPoints.length - 1] - minVal) / (maxVal - minVal)) * (svgHeight - 20) - 10}
+                    r="4"
+                    fill="#00C805"
+                    className="animate-pulse"
+                  />
+                </svg>
+              </div>
+
+              {/* Chart Footer Stats */}
+              <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[#1a1a1a] text-[10px] text-[#808080]">
+                <div>
+                  <span>STARTING: </span>
+                  <span className="text-[#CCCCCC] font-mono">$100,000.00</span>
+                </div>
+                <div>
+                  <span>MIN: </span>
+                  <span className="text-[#CCCCCC] font-mono">${Math.round(minVal).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span>MAX: </span>
+                  <span className="text-[#CCCCCC] font-mono">${Math.round(maxVal).toLocaleString()}</span>
+                </div>
+                <div className="text-right">
+                  <span className={cn("font-bold", selectedTeam.totalReturn >= 0 ? "text-[#00C805]" : "text-[#FF0000]")}>
+                    ALPHA: {selectedTeam.totalReturn >= 0 ? "+" : ""}{selectedTeam.totalReturn.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM-RIGHT: LIVE TRADE EXECUTION STREAM */}
+          <div className="flex-1 flex flex-col overflow-hidden min-h-[240px]">
+            <div className="px-3 py-1.5 bg-[#0a0a0a] border-b border-[#222222] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-3.5 bg-[#00A0E8]" />
+                <Activity className="size-3 text-[#00A0E8]" />
+                <span className="font-bold text-[#00A0E8] uppercase tracking-wider text-[11px]">
+                  LIVE EXECUTION STREAM // ORDER FILLS
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-[#808080]">
+                <span className="inline-block w-2 h-2 rounded-full bg-[#00C805] animate-ping" />
+                <span>DIRECT MARKET ACCESS</span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-[#050505] text-[#808080] sticky top-0 border-b border-[#222222]">
+                  <tr>
+                    <th className="py-1.5 px-3">Time</th>
+                    <th className="py-1.5 px-2">Order ID</th>
+                    <th className="py-1.5 px-2">Symbol</th>
+                    <th className="py-1.5 px-2">Side</th>
+                    <th className="py-1.5 px-2 text-right">Qty</th>
+                    <th className="py-1.5 px-2 text-right">Fill Price</th>
+                    <th className="py-1.5 px-2 text-right">Slippage</th>
+                    <th className="py-1.5 px-3 text-right">Venue</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#151515]">
+                  {trades.map((tr) => (
+                    <tr key={tr.id} className="hover:bg-[#0c0c0c] transition-colors">
+                      <td className="py-1.5 px-3 font-mono text-[#808080]">{tr.timestamp}</td>
+                      <td className="py-1.5 px-2 font-mono text-[#666666]">{tr.id}</td>
+                      <td className="py-1.5 px-2 font-bold text-[#FFFFFF]">{tr.symbol}</td>
+                      <td className="py-1.5 px-2">
+                        <span className={cn(
+                          "px-1 py-0.2 rounded text-[9px] font-bold",
+                          tr.side === "BUY" ? "bg-[#00C805]/20 text-[#00C805]" : "bg-[#FF0000]/20 text-[#FF0000]"
+                        )}>
+                          {tr.side}
+                        </span>
+                      </td>
+                      <td className="py-1.5 px-2 text-right font-mono text-[#CCCCCC]">{tr.shares}</td>
+                      <td className="py-1.5 px-2 text-right font-mono font-semibold text-[#FFFFFF]">
+                        ${tr.price.toFixed(2)}
+                      </td>
+                      <td className="py-1.5 px-2 text-right font-mono text-[#808080]">
+                        {(tr.slippage * 100).toFixed(3)}%
+                      </td>
+                      <td className="py-1.5 px-3 text-right text-[10px] text-[#00A0E8] font-mono">
+                        {tr.venue}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* 5. BOTTOM STATUS STRIP                                        */}
+      {/* ============================================================ */}
+      <footer className="h-6 bg-[#080808] border-t border-[#222222] px-3 flex items-center justify-between text-[10px] text-[#808080]">
+        <div className="flex items-center gap-3">
+          <span>ALQAVI QUANTITATIVE EXECUTION DESK</span>
+          <span>•</span>
+          <span className="text-[#00C805]">WEBSOCKET: CONNECTED</span>
+          <span>•</span>
+          <span>ALPACA-PY GATEWAY: OK</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span>TICK RATE: 350ms</span>
+          <span>•</span>
+          <span className="text-[#00A0E8]">PORTFOLIO SHOWCASE DEMO</span>
+        </div>
+      </footer>
     </div>
   );
 }

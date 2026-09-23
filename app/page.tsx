@@ -143,8 +143,6 @@ export default function Home() {
       );
     } else if (activeFile === "alqavi.md") {
       downloadFile("alqavi.md", editedContent || "");
-    } else if (activeFile === "contact.md") {
-      downloadFile("contact.md", editedContent || "");
     }
   }, [activeFile, editedContent, fileSystem]);
 
@@ -366,6 +364,7 @@ export default function Home() {
             activeFile={activeFile}
             onFileClose={handleFileClose}
             onFileSelect={handleFileSelect}
+            onOpenFile={handleFileClick}
             fileSystem={fileSystem}
             customFiles={customFiles}
             editorMode={editorMode}

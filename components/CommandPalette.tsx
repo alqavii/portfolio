@@ -50,7 +50,6 @@ export default function CommandPalette({
 
   const allItems: PaletteItem[] = [
     { id: "alqavi", title: "alqavi.md", icon: FileText, action: run(() => onOpenFile("alqavi.md")) },
-    { id: "contact", title: "contact.md", icon: FileText, action: run(() => onOpenFile("contact.md")) },
     ...projectsData.flatMap((p) => [
       {
         id: `readme-${p.id}`,

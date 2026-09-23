@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 // Editor file id -> markdown file under data/
 const FILES: Record<string, string> = {
   "alqavi.md": "alqavi.md",
-  "contact.md": "contact.md",
   "projects/petral/README.md": "readmes/petral.md",
   "projects/qtc-quant/README.md": "readmes/qtc-quant.md",
   "projects/ssvi-surface/README.md": "readmes/ssvi-surface.md",

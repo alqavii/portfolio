@@ -52,7 +52,6 @@ const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
     const openTarget = (arg: string): string | null => {
       const name = arg.replace(/\.md$/, "");
       if (name === "alqavi" || name === "about") return "alqavi.md";
-      if (name === "contact") return "contact.md";
       const project = projectsData.find((p) => p.id === name || p.id.startsWith(name));
       return project ? `projects/${project.id}/README.md` : null;
     };
@@ -75,7 +74,7 @@ const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
         case "help":
           print(
             "  about           open alqavi.md",
-            "  contact         open contact.md",
+            "  contact         show email and phone",
             "  ls              list projects",
             "  open <name>     open a file or project README",
             `  theme <name>    ${THEME_IDS}`,
@@ -92,7 +91,7 @@ const Terminal = forwardRef<HTMLDivElement, TerminalProps>(
 
         case "contact":
           print("alqavihasan@gmail.com", "+44 7392 516153", "");
-          onOpenFile?.("contact.md");
+          onOpenFile?.("alqavi.md");
           return;
 
         case "ls":
