@@ -60,10 +60,9 @@ export const projects: Project[] = [
     title: "SSVI Surface",
     description:
       "Arbitrage-free implied volatility surface fitted to market options",
-    // TODO: replace with the SSVI Surface GitHub repo URL
-    href: "https://github.com/TODO/ssvi-surface",
+    href: "/demos/ssvi",
     thumbnail: "/thumbs/ssvi-surface.png",
-    external: true,
+    external: false,
     visible: true,
   },
 ];

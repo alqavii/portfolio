@@ -181,12 +181,6 @@ body {
   transition: border-color 150ms ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .thumb {
-    filter: brightness(0.92);
-  }
-}
-
 .card-title {
   margin-top: 1rem;
   font-family: var(--font-serif), Georgia, serif;

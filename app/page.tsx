@@ -27,8 +27,7 @@ export default function Home() {
         <header className="intro">
           <h1 className="name">AlQavi Hasan</h1>
           <p className="tagline">
-            Chem Eng @ Sheffield · physical oil markets · seeking commodities
-            trading internships
+            1st Year Chemical Engineering Student @ University of Sheffield · seeking commodity trading internships
           </p>
           <div className="contact">
             <ul className="links">
