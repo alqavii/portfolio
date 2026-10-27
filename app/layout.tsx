@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 const TAGLINE =
-  "Chem Eng @ Sheffield · physical oil markets · seeking commodities trading internships";
+  "1st Year Chemical Engineering Student @ University of Sheffield · seeking commodity trading internships";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://alqavi.xyz"),
