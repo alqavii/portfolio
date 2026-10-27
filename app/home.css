@@ -1,0 +1,267 @@
+/* Homepage only. Deliberately independent of Tailwind / globals.css. */
+
+:root {
+  --bg: #faf8f3;
+  --text: #1a1a1a;
+  --muted: #5c5c5c;
+  --border: #e4e0d6;
+  --accent: #1f5f5b;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161616;
+    --text: #edeae3;
+    --muted: #9a968e;
+    --border: #2a2a2a;
+    --accent: #6fb3ac;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* :where() keeps these resets at zero specificity so component rules win. */
+:where(.home) :where(h1, h2, h3, p, ul) {
+  margin: 0;
+  padding: 0;
+}
+
+:where(.home) ul {
+  list-style: none;
+}
+
+:where(.home) a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+:where(.home) a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 7rem 2rem 4rem;
+}
+
+/* Intro */
+
+.intro {
+  margin-bottom: 4.5rem;
+}
+
+.name {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(2.75rem, 6vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 1.0625rem;
+}
+
+/* The address is its own flex item so it wraps alone, never leaving a
+   stray "·" at the start of a line. */
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  margin-top: 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.links {
+  display: flex;
+  align-items: baseline;
+}
+
+.links li + li::before {
+  content: "·";
+  margin: 0 0.6rem;
+  color: var(--muted);
+}
+
+.links a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.links a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.email {
+  color: var(--muted);
+}
+
+/* Grid */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3rem 2rem;
+}
+
+@media (max-width: 959px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .page {
+    padding: 4rem 1.25rem 3rem;
+  }
+
+  .intro {
+    margin-bottom: 3rem;
+  }
+
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+/* Cards */
+
+.card {
+  display: block;
+  color: inherit;
+  border-radius: 8px;
+  transition: transform 150ms ease;
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: border-color 150ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .thumb {
+    filter: brightness(0.92);
+  }
+}
+
+.card-title {
+  margin-top: 1rem;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 500;
+  font-size: 1.3rem;
+  line-height: 1.3;
+  transition: color 150ms ease;
+}
+
+.card-desc {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-2px);
+  }
+
+  .card:hover .thumb {
+    border-color: var(--accent);
+  }
+
+  .card:hover .card-title {
+    color: var(--accent);
+  }
+}
+
+.card:focus-visible {
+  outline-offset: 6px;
+}
+
+.card:focus-visible .thumb {
+  border-color: var(--accent);
+}
+
+/* Footer */
+
+.footer {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 639px) {
+  .footer {
+    padding: 1.5rem 1.25rem 2.5rem;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .thumb,
+  .card-title {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+}

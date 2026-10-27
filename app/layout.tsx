@@ -1,18 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+
+const TAGLINE =
+  "Chem Eng @ Sheffield · physical oil markets · seeking commodities trading internships";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://alqavi.xyz"),
   title: "AlQavi Hasan",
-  description: "Projects by AlQavi Hasan.",
+  description: TAGLINE,
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "AlQavi Hasan",
+    title: "AlQavi Hasan",
+    description: TAGLINE,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "AlQavi Hasan" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AlQavi Hasan",
+    description: TAGLINE,
+    images: ["/og.png"],
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  themeColor: "#181818",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAF8F3" },
+    { media: "(prefers-color-scheme: dark)", color: "#161616" },
+  ],
 };
 
+// Styles live with each route: app/home.css for the homepage,
+// app/globals.css (Tailwind + VS Code tokens) for /terminal and /demos.
 export default function RootLayout({
   children,
 }: Readonly<{
