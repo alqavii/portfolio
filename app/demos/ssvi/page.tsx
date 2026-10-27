@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Source_Sans_3 } from "next/font/google";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
+import {
+  generateIVSmile,
+  interpolateZeroRate,
+  runSSVI,
+  type AnalysisResult,
+  type OptionRow,
+} from "@/lib/ssvi/engine";
 
 const sourceSans = Source_Sans_3({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -16,31 +23,13 @@ const ST = {
   primary: "#ff4b4b",
   border: "rgba(250, 250, 250, 0.2)",
   grid: "rgba(250, 250, 250, 0.1)",
-  series: ["#83c9ff", "#0068c9", "#ffabab", "#ff2b2b", "#7defa1", "#29b09d"],
 };
 
-interface Params {
-  sigma0: number;
-  rho: number;
-  eta: number;
-  gamma: number;
-  termSlope: number;
-}
-
-const PRESETS: Record<string, Params> = {
-  SPY: { sigma0: 15.5, rho: -0.72, eta: 0.54, gamma: 0.38, termSlope: 0.04 },
-  QQQ: { sigma0: 19.8, rho: -0.68, eta: 0.58, gamma: 0.36, termSlope: 0.035 },
-  NVDA: { sigma0: 46.2, rho: -0.38, eta: 0.85, gamma: 0.28, termSlope: -0.02 },
-  AAPL: { sigma0: 22.4, rho: -0.55, eta: 0.62, gamma: 0.42, termSlope: 0.025 },
-  TSLA: { sigma0: 54.0, rho: -0.32, eta: 0.92, gamma: 0.25, termSlope: -0.015 },
+const ALERT = {
+  info: { bg: "rgba(61, 157, 243, 0.2)", fg: "rgb(199, 235, 255)" },
+  success: { bg: "rgba(61, 213, 109, 0.2)", fg: "rgb(223, 253, 233)" },
+  error: { bg: "rgba(255, 108, 108, 0.2)", fg: "rgb(255, 222, 222)" },
 };
-
-const SMILE_EXPIRIES = [
-  { t: 30 / 365, label: "30d" },
-  { t: 90 / 365, label: "90d" },
-  { t: 180 / 365, label: "180d" },
-  { t: 1, label: "1y" },
-];
 
 declare global {
   interface Window {
@@ -48,173 +37,392 @@ declare global {
   }
 }
 
-// SSVI total variance: w(k, θ) = θ/2 · [1 + ρφk + √((φk + ρ)² + 1 − ρ²)], φ(θ) = η / θ^γ
-function impliedVol(k: number, t: number, p: Params) {
-  const atmVol = p.sigma0 / 100 + p.termSlope * Math.log(1 + t);
-  const theta = Math.max(1e-6, atmVol * atmVol * t);
-  const phi = p.eta / Math.pow(theta, p.gamma);
-  const disc = Math.pow(phi * k + p.rho, 2) + (1 - p.rho * p.rho);
-  const w = (theta / 2) * (1 + p.rho * phi * k + Math.sqrt(Math.max(1e-8, disc)));
-  return Math.sqrt(Math.max(1e-8, w / t));
+// ---------------------------------------------------------------------------
+// Streamlit widgets
+// ---------------------------------------------------------------------------
+
+function Alert({ kind, children }: { kind: keyof typeof ALERT; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg px-4 py-3 mb-4 text-base" style={{ background: ALERT[kind].bg, color: ALERT[kind].fg }}>
+      {children}
+    </div>
+  );
 }
 
-const axis = (title: string) => ({
-  title: { text: title, font: { color: ST.muted, size: 12 } },
-  tickfont: { color: ST.muted, size: 12 },
-  gridcolor: ST.grid,
-  zerolinecolor: ST.grid,
-  backgroundcolor: "rgba(0,0,0,0)",
-});
+function Spinner({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4 text-base">
+      <span
+        className="inline-block w-5 h-5 rounded-full border-[3px] animate-spin"
+        style={{ borderColor: "rgba(250,250,250,0.2)", borderTopColor: ST.text }}
+      />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-sm mb-1 truncate">{label}</div>
+      <div className="text-[2.25rem] leading-tight tabular-nums truncate">{value}</div>
+    </div>
+  );
+}
+
+function Columns({ n, children }: { n: number; children: React.ReactNode }) {
+  const cls = n === 2 ? "sm:grid-cols-2" : n === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4";
+  return <div className={`grid grid-cols-1 ${cls} gap-4 mb-4`}>{children}</div>;
+}
+
+function H2({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-[2.25rem] leading-tight font-semibold pt-5 pb-3">{children}</h2>;
+}
 
 function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  format,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  format: (v: number) => string;
-  onChange: (v: number) => void;
-}) {
+  label, value, min, max, onChange,
+}: { label: string; value: number; min: number; max: number; onChange: (v: number) => void }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
     <div className="mb-4">
-      <label className="block text-sm mb-1" style={{ color: ST.text }}>
-        {label}
-      </label>
+      <label className="block text-sm mb-1">{label}</label>
       <div className="relative pt-5">
         <div
           className="absolute top-0 text-sm tabular-nums -translate-x-1/2 whitespace-nowrap"
           style={{ left: `calc(${pct}% + ${6 - pct * 0.12}px)`, color: ST.primary }}
         >
-          {format(value)}
+          {value}
         </div>
         <input
           type="range"
           className="st-slider w-full"
           min={min}
           max={max}
-          step={step}
+          step={1}
           value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
-          style={{
-            background: `linear-gradient(to right, ${ST.primary} ${pct}%, ${ST.border} ${pct}%)`,
-          }}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          style={{ background: `linear-gradient(to right, ${ST.primary} ${pct}%, ${ST.border} ${pct}%)` }}
         />
         <div className="flex justify-between text-sm tabular-nums mt-0.5" style={{ color: ST.muted }}>
-          <span>{format(min)}</span>
-          <span>{format(max)}</span>
+          <span>{min}</span>
+          <span>{max}</span>
         </div>
       </div>
     </div>
   );
 }
 
-export default function SSVISurfaceDemo() {
-  const [ticker, setTicker] = useState("SPY");
-  const [params, setParams] = useState<Params>(PRESETS.SPY);
-  const [tab, setTab] = useState<"surface" | "smile">("surface");
+function NumberInput({
+  label, value, step, onChange,
+}: { label: string; value: number; step: number; onChange: (v: number) => void }) {
+  const [text, setText] = useState(value.toFixed(2));
+  useEffect(() => setText(value.toFixed(2)), [value]);
+  const commit = () => {
+    const v = parseFloat(text);
+    if (Number.isFinite(v)) onChange(Math.round(v * 100) / 100);
+    else setText(value.toFixed(2));
+  };
+  const bump = (d: number) => onChange(Math.round((value + d) * 100) / 100);
+  return (
+    <div className="min-w-0">
+      <label className="block text-sm mb-1">{label}</label>
+      <div
+        className="flex rounded-lg overflow-hidden border border-transparent focus-within:border-[#ff4b4b]"
+        style={{ background: ST.bg }}
+      >
+        <input
+          inputMode="decimal"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          className="min-w-0 flex-1 bg-transparent px-3 py-2 text-base outline-none tabular-nums"
+        />
+        <button onClick={() => bump(-step)} className="px-2 hover:bg-[#ff4b4b] transition-colors" aria-label="Decrease">
+          <Minus size={14} />
+        </button>
+        <button onClick={() => bump(step)} className="px-2 hover:bg-[#ff4b4b] transition-colors" aria-label="Increase">
+          <Plus size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type Cell = string | number;
+
+function DataFrame({ columns, index, rows }: { columns: string[]; index: number[]; rows: Cell[][] }) {
+  const fmt = (v: Cell) => (typeof v === "number" ? (Number.isInteger(v) ? String(v) : v.toFixed(4)) : v);
+  return (
+    <div className="overflow-auto rounded-lg border h-[400px] text-sm" style={{ borderColor: ST.grid }}>
+      <table className="w-full border-collapse tabular-nums">
+        <thead className="sticky top-0" style={{ background: ST.bg }}>
+          <tr>
+            <th className="px-2 py-1.5 border-b border-r" style={{ borderColor: ST.grid }} />
+            {columns.map((c) => (
+              <th
+                key={c}
+                className="px-2 py-1.5 text-left font-normal border-b border-r whitespace-nowrap"
+                style={{ borderColor: ST.grid, color: ST.muted }}
+              >
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={index[i]} className="hover:bg-white/[0.03]">
+              <td className="px-2 py-1 border-b border-r text-right" style={{ borderColor: ST.grid, color: ST.muted }}>
+                {index[i]}
+              </td>
+              {r.map((v, j) => (
+                <td
+                  key={j}
+                  className={`px-2 py-1 border-b border-r whitespace-nowrap ${typeof v === "number" ? "text-right" : ""}`}
+                  style={{ borderColor: ST.grid }}
+                >
+                  {fmt(v)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Charts
+// ---------------------------------------------------------------------------
+
+/** st.pyplot rendering of the matplotlib scatter: white figure, viridis by T, red dashed zero line. */
+function MplScatter({
+  plotlyReady, x, y, c, xlabel, ylabel, title,
+}: {
+  plotlyReady: boolean; x: number[]; y: number[]; c: number[]; xlabel: string; ylabel: string; title: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!plotlyReady || !ref.current) return;
+    const mplAxis = (label: string) => ({
+      title: { text: label, font: { size: 13, color: "#000" } },
+      showline: true,
+      mirror: true,
+      linecolor: "#000",
+      linewidth: 1,
+      ticks: "outside",
+      tickcolor: "#000",
+      tickfont: { color: "#000", size: 11 },
+      gridcolor: "rgba(0,0,0,0.12)",
+      zeroline: false,
+    });
+    window.Plotly.react(
+      ref.current,
+      [
+        {
+          type: "scatter",
+          mode: "markers",
+          x,
+          y,
+          marker: {
+            color: c,
+            colorscale: "Viridis",
+            size: 9,
+            opacity: 0.6,
+            line: { width: 0 },
+            colorbar: {
+              title: { text: "Time to Expiry (T)", side: "right", font: { color: "#000", size: 13 } },
+              tickfont: { color: "#000", size: 11 },
+              outlinecolor: "#000",
+              outlinewidth: 1,
+              thickness: 18,
+            },
+          },
+          hovertemplate: "k %{x:.4f}<br>%{y:.4f}<extra></extra>",
+        },
+      ],
+      {
+        paper_bgcolor: "#fff",
+        plot_bgcolor: "#fff",
+        font: { family: "DejaVu Sans, Verdana, sans-serif", color: "#000" },
+        title: { text: title, font: { size: 15, color: "#000" }, y: 0.96 },
+        margin: { l: 70, r: 20, t: 50, b: 55 },
+        xaxis: mplAxis(xlabel),
+        yaxis: mplAxis(ylabel),
+        shapes: [
+          { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "red", width: 2, dash: "dash" } },
+        ],
+        showlegend: false,
+        autosize: true,
+      },
+      { responsive: true, displayModeBar: false }
+    );
+  }, [plotlyReady, x, y, c, xlabel, ylabel, title]);
+  return <div ref={ref} className="w-full aspect-[10/6]" />;
+}
+
+function SurfaceComparison({ plotlyReady, grid }: { plotlyReady: boolean; grid: AnalysisResult["grid"] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!plotlyReady || !ref.current) return;
+    const axis = (title: string) => ({
+      title: { text: title, font: { size: 12, color: ST.text } },
+      tickfont: { color: ST.muted, size: 11 },
+      gridcolor: ST.grid,
+      zerolinecolor: ST.grid,
+      backgroundcolor: "rgba(0,0,0,0)",
+    });
+    const scene = (x0: number, x1: number) => ({
+      domain: { x: [x0, x1], y: [0, 1] },
+      xaxis: axis("Moneyness (K/F)"),
+      yaxis: axis("Time to Expiry (Years)"),
+      zaxis: axis("Implied Volatility"),
+      camera: { eye: { x: 1.9, y: 1.9, z: 1.2 } },
+    });
+    window.Plotly.react(
+      ref.current,
+      [
+        {
+          type: "surface", x: grid.M, y: grid.T, z: grid.ivMarket, colorscale: "Viridis",
+          name: "Market IV", showscale: false, scene: "scene",
+        },
+        {
+          type: "surface", x: grid.M, y: grid.T, z: grid.ivModel, colorscale: "Viridis",
+          name: "Model IV", showscale: true, scene: "scene2",
+          colorbar: { x: 1.02, len: 0.8, tickfont: { color: ST.muted } },
+        },
+      ],
+      {
+        title: { text: "Implied Volatility Surface: Market vs SSVI Model", font: { size: 16, color: ST.text }, x: 0.02 },
+        height: 700,
+        showlegend: false,
+        paper_bgcolor: "rgba(0,0,0,0)",
+        plot_bgcolor: "rgba(0,0,0,0)",
+        font: { family: sourceSans.style.fontFamily, color: ST.text },
+        margin: { l: 0, r: 0, t: 80, b: 0 },
+        scene: scene(0, 0.45),
+        scene2: scene(0.55, 1),
+        annotations: [
+          { text: "Market IV Surface", x: 0.225, y: 1, xref: "paper", yref: "paper", showarrow: false, yanchor: "bottom", font: { size: 16 } },
+          { text: "Model IV Surface", x: 0.775, y: 1, xref: "paper", yref: "paper", showarrow: false, yanchor: "bottom", font: { size: 16 } },
+        ],
+        autosize: true,
+      },
+      { responsive: true, displaylogo: false }
+    );
+  }, [plotlyReady, grid]);
+  return <div ref={ref} className="w-full h-[700px]" />;
+}
+
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+
+interface Chain {
+  spot: number;
+  dividendYield: number;
+  source: string;
+  rows: OptionRow[];
+}
+
+interface RunState {
+  step: "rates" | "chain" | "iv" | "ssvi" | "done";
+  chain?: Chain;
+  ivPoints?: number;
+  result?: AnalysisResult;
+  error?: string;
+}
+
+const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+
+// dateutil.relativedelta(months=n): calendar months, clamped to the end of the month
+function addMonths(d: Date, n: number) {
+  const y = d.getUTCFullYear(), m = d.getUTCMonth() + n;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m, Math.min(d.getUTCDate(), last)));
+}
+
+async function getJson(url: string) {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+  return json;
+}
+
+const nextFrame = () => new Promise((r) => setTimeout(r, 30));
+
+export default function SSVIStreamlitDemo() {
+  const [ticker, setTicker] = useState("NVDA");
+  const [minWeeks, setMinWeeks] = useState(4);
+  const [maxMonths, setMaxMonths] = useState(12);
+  const [mMin, setMMin] = useState(0.8);
+  const [mMax, setMMax] = useState(1.2);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [plotlyReady, setPlotlyReady] = useState(false);
-
-  const surfaceRef = useRef<HTMLDivElement>(null);
-  const smileRef = useRef<HTMLDivElement>(null);
-
-  const set = useCallback(
-    (key: keyof Params) => (v: number) => setParams((p) => ({ ...p, [key]: v })),
-    []
-  );
+  const [run, setRun] = useState<RunState | null>(null);
+  const [tab, setTab] = useState(0);
+  const runId = useRef(0);
 
   useEffect(() => {
     if (window.Plotly) setPlotlyReady(true);
     if (window.innerWidth < 640) setSidebarOpen(false);
   }, []);
 
-  const grid = useMemo(() => {
-    const moneyness = Array.from({ length: 35 }, (_, i) => 0.7 + (i / 34) * 0.6);
-    const tenors = Array.from({ length: 25 }, (_, j) => 0.05 + (j / 24) * 1.95);
-    const z = tenors.map((t) => moneyness.map((m) => impliedVol(Math.log(m), t, params) * 100));
-    return { moneyness, tenors, z };
-  }, [params]);
+  const running = run !== null && run.step !== "done" && !run.error;
 
-  const baseLayout = {
-    paper_bgcolor: "rgba(0,0,0,0)",
-    plot_bgcolor: "rgba(0,0,0,0)",
-    font: { family: sourceSans.style.fontFamily, color: ST.text, size: 12 },
-    autosize: true,
-  };
+  async function runAnalysis() {
+    const id = ++runId.current;
+    const live = () => id === runId.current;
+    let state: RunState = { step: "rates" };
+    const update = (patch: Partial<RunState>) => {
+      state = { ...state, ...patch };
+      if (live()) setRun(state);
+    };
+    update({});
+    setTab(0);
+    if (window.innerWidth < 640) setSidebarOpen(false);
 
-  useEffect(() => {
-    if (!plotlyReady || tab !== "surface" || !surfaceRef.current) return;
-    window.Plotly.react(
-      surfaceRef.current,
-      [
-        {
-          type: "surface",
-          x: grid.moneyness,
-          y: grid.tenors,
-          z: grid.z,
-          colorscale: "Viridis",
-          colorbar: { title: { text: "IV (%)", side: "right" }, len: 0.7, tickfont: { color: ST.muted } },
-          hovertemplate: "K/F %{x:.2f}<br>T %{y:.2f}y<br>IV %{z:.1f}%<extra></extra>",
-        },
-      ],
-      {
-        ...baseLayout,
-        margin: { l: 0, r: 0, b: 0, t: 0 },
-        scene: {
-          xaxis: axis("K/F"),
-          yaxis: axis("T (years)"),
-          zaxis: axis("IV (%)"),
-          camera: { eye: { x: 1.6, y: -1.6, z: 1.1 } },
-        },
-      },
-      { responsive: true, displaylogo: false }
-    );
-  }, [plotlyReady, tab, grid]); // eslint-disable-line react-hooks/exhaustive-deps
+    try {
+      const { zeroCurve } = await getJson("/api/ssvi/rates");
+      if (!live()) return;
+      update({ step: "chain" });
 
-  useEffect(() => {
-    if (!plotlyReady || tab !== "smile" || !smileRef.current) return;
-    const m = Array.from({ length: 50 }, (_, i) => 0.75 + (i / 49) * 0.5);
-    window.Plotly.react(
-      smileRef.current,
-      SMILE_EXPIRIES.map(({ t, label }, i) => ({
-        x: m,
-        y: m.map((x) => impliedVol(Math.log(x), t, params) * 100),
-        mode: "lines",
-        name: label,
-        line: { color: ST.series[i], width: 2 },
-      })),
-      {
-        ...baseLayout,
-        margin: { l: 50, r: 10, b: 45, t: 10 },
-        xaxis: axis("K/F"),
-        yaxis: axis("IV (%)"),
-        legend: { orientation: "h", y: 1.08, font: { color: ST.text } },
-      },
-      { responsive: true, displaylogo: false }
-    );
-  }, [plotlyReady, tab, params]); // eslint-disable-line react-hooks/exhaustive-deps
+      const today = new Date();
+      const params = new URLSearchParams({
+        ticker: ticker.trim().toUpperCase(),
+        expiryStart: isoDate(new Date(today.getTime() + minWeeks * 7 * 86400000)),
+        expiryEnd: isoDate(addMonths(today, maxMonths)),
+        moneynessMin: String(mMin),
+        moneynessMax: String(mMax),
+      });
+      const chain: Chain = await getJson(`/api/ssvi/chain?${params}`);
+      if (!live()) return;
+      update({ step: "iv", chain });
+      await nextFrame();
 
-  const leeBound = params.eta * (1 + Math.abs(params.rho));
+      const rateArray = chain.rows.map((r) => interpolateZeroRate(r.timeToExpiry, zeroCurve));
+      const surfaceData = generateIVSmile(chain.rows, rateArray, chain.dividendYield / 100, chain.spot, "call");
+      if (surfaceData.length === 0) throw new Error("No contracts produced a valid implied volatility.");
+      update({ step: "ssvi", ivPoints: surfaceData.length });
+      await nextFrame();
+
+      const result = runSSVI(surfaceData, chain.spot, chain.dividendYield);
+      update({ step: "done", result });
+    } catch (e) {
+      update({ error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  const stepIdx = run ? ["rates", "chain", "iv", "ssvi", "done"].indexOf(run.step) : -1;
+  const past = (i: number) => stepIdx > i;
+  const r = run?.result;
+  const chain = run?.chain;
 
   return (
-    <div
-      className={`${sourceSans.className} min-h-screen w-full flex`}
-      style={{ background: ST.bg, color: ST.text }}
-    >
-      <Script
-        src="https://cdn.plot.ly/plotly-2.35.2.min.js"
-        strategy="afterInteractive"
-        onLoad={() => setPlotlyReady(true)}
-      />
+    <div className={`${sourceSans.className} min-h-screen w-full flex`} style={{ background: ST.bg, color: ST.text }}>
+      <Script src="https://cdn.plot.ly/plotly-2.35.2.min.js" strategy="afterInteractive" onLoad={() => setPlotlyReady(true)} />
       <style>{`
         .st-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px; outline: none; }
         .st-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: ${ST.primary}; cursor: pointer; }
@@ -222,15 +430,21 @@ export default function SSVISurfaceDemo() {
         .st-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(255, 75, 75, 0.5); }
       `}</style>
 
-      {/* Streamlit's top decoration line */}
-      <div
-        className="fixed top-0 inset-x-0 h-0.5 z-50"
-        style={{ backgroundImage: "linear-gradient(90deg, #ff4b4b, #fffd80)" }}
-      />
+      {/* Streamlit's top decoration line + status widget */}
+      <div className="fixed top-0 inset-x-0 h-0.5 z-50" style={{ backgroundImage: "linear-gradient(90deg, #ff4b4b, #fffd80)" }} />
+      {running && (
+        <div className="fixed top-3 right-4 z-50 flex items-center gap-2 text-sm" style={{ color: ST.muted }}>
+          <span
+            className="inline-block w-3.5 h-3.5 rounded-full border-2 animate-spin"
+            style={{ borderColor: "rgba(250,250,250,0.2)", borderTopColor: ST.text }}
+          />
+          Running...
+        </div>
+      )}
 
       {sidebarOpen && (
         <aside
-          className="w-[300px] flex-shrink-0 min-h-screen px-6 pt-12 pb-8 relative max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:overflow-y-auto"
+          className="w-[336px] flex-shrink-0 min-h-screen px-6 pt-12 pb-8 relative max-sm:fixed max-sm:inset-y-0 max-sm:left-0 max-sm:z-40 max-sm:w-[85vw] max-sm:overflow-y-auto"
           style={{ background: ST.sidebar }}
         >
           <button
@@ -242,45 +456,39 @@ export default function SSVISurfaceDemo() {
             <ChevronLeft size={18} />
           </button>
 
+          <h2 className="text-[1.5rem] font-semibold mb-4">Configuration</h2>
+
           <div className="mb-4">
-            <label className="block text-sm mb-1">Ticker</label>
-            <div className="relative">
-              <select
-                value={ticker}
-                onChange={(e) => {
-                  setTicker(e.target.value);
-                  setParams(PRESETS[e.target.value]);
-                }}
-                className="w-full appearance-none rounded-lg px-3 py-2 pr-9 text-base outline-none border border-transparent focus:border-[#ff4b4b] cursor-pointer"
-                style={{ background: ST.bg, color: ST.text }}
-              >
-                {Object.keys(PRESETS).map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: ST.muted }}
-              />
-            </div>
+            <label className="block text-sm mb-1">Ticker Symbol</label>
+            <input
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !running && runAnalysis()}
+              className="w-full rounded-lg px-3 py-2 text-base outline-none border border-transparent focus:border-[#ff4b4b]"
+              style={{ background: ST.bg, color: ST.text }}
+            />
           </div>
 
-          <Slider label="ATM vol σ₀ (%)" value={params.sigma0} min={10} max={65} step={0.5} format={(v) => v.toFixed(1)} onChange={set("sigma0")} />
-          <Slider label="Skew ρ" value={params.rho} min={-0.95} max={-0.05} step={0.01} format={(v) => v.toFixed(2)} onChange={set("rho")} />
-          <Slider label="Curvature η" value={params.eta} min={0.1} max={1.5} step={0.02} format={(v) => v.toFixed(2)} onChange={set("eta")} />
-          <Slider label="Decay γ" value={params.gamma} min={0.15} max={0.65} step={0.01} format={(v) => v.toFixed(2)} onChange={set("gamma")} />
-          <Slider label="Term slope" value={params.termSlope} min={-0.04} max={0.08} step={0.005} format={(v) => v.toFixed(3)} onChange={set("termSlope")} />
+          <Slider label="Min Expiry (weeks)" value={minWeeks} min={0} max={52} onChange={setMinWeeks} />
+          <Slider label="Max Expiry (months)" value={maxMonths} min={1} max={60} onChange={setMaxMonths} />
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <NumberInput label="Moneyness Min" value={mMin} step={0.1} onChange={setMMin} />
+            <NumberInput label="Moneyness Max" value={mMax} step={0.1} onChange={setMMax} />
+          </div>
 
           <button
-            onClick={() => setParams(PRESETS[ticker])}
-            className="mt-1 px-3 py-1.5 rounded-lg text-base border hover:border-[#ff4b4b] hover:text-[#ff4b4b] transition-colors"
-            style={{ borderColor: ST.border, background: ST.bg }}
+            onClick={runAnalysis}
+            disabled={running}
+            className="px-3 py-1.5 rounded-lg text-base text-white border transition-colors disabled:opacity-60"
+            style={{ background: ST.primary, borderColor: ST.primary }}
           >
-            Reset
+            Run Analysis
           </button>
+
+          <p className="mt-6 text-sm" style={{ color: ST.muted }}>
+            Live quotes: {chain?.source ?? "Yahoo Finance"} · Treasury yields: FRED
+          </p>
         </aside>
       )}
 
@@ -295,43 +503,129 @@ export default function SSVISurfaceDemo() {
         </button>
       )}
 
-      <main className="flex-1 min-w-0 px-6 sm:px-12 lg:px-20 pt-14 pb-10">
-        <h1 className="text-[2.75rem] leading-tight font-bold mb-4">SSVI Volatility Surface</h1>
+      <main className="flex-1 min-w-0 px-4 sm:px-12 lg:px-20 pt-14 pb-16">
+        <h1 className="text-[2.75rem] leading-tight font-bold mb-4">Options Implied Volatility Analysis</h1>
+        <p className="text-base mb-4">This app analyzes options implied volatility and fits the SSVI model.</p>
 
-        {leeBound > 2 && (
-          <div
-            className="rounded-lg px-4 py-3 mb-4 text-base"
-            style={{ background: "rgba(255, 227, 18, 0.1)", color: "#ffffc2" }}
-          >
-            η(1 + |ρ|) = {leeBound.toFixed(2)} exceeds 2, so this surface admits arbitrage in the wings.
-          </div>
+        {!run && <Alert kind="info">&lt;-- Configure the parameters in the sidebar and click &apos;Run Analysis&apos; to begin.</Alert>}
+
+        {run && (
+          <>
+            <Alert kind="info">Running analysis... This may take a moment.</Alert>
+
+            {run.step === "rates" && !run.error && <Spinner text="Fetching treasury bond yields and building zero curve..." />}
+            {past(0) && <Alert kind="success">✓ Fetched zero rates</Alert>}
+
+            {run.step === "chain" && !run.error && <Spinner text="Fetching options data..." />}
+            {past(1) && chain && <Alert kind="success">Fetched {chain.rows.length} contracts</Alert>}
+
+            {run.step === "iv" && !run.error && <Spinner text="Calculating implied volatility..." />}
+            {past(2) && chain && (
+              <>
+                <Alert kind="success">✓ Calculated IV for {run.ivPoints} data points</Alert>
+                <Columns n={3}>
+                  <Metric label="Spot Price" value={`$${chain.spot.toFixed(2)}`} />
+                  <Metric label="Dividend Yield" value={`${chain.dividendYield.toFixed(2)}%`} />
+                  <Metric label="Data Points" value={String(run.ivPoints)} />
+                </Columns>
+              </>
+            )}
+
+            {run.step === "ssvi" && !run.error && <Spinner text="Calibrating SSVI model..." />}
+
+            {r && chain && (
+              <>
+                <Alert kind="success">✓ SSVI calibration complete</Alert>
+                <Columns n={2}>
+                  <Metric label="Optimized Rho" value={r.rhoOpt.toFixed(6)} />
+                  <Metric label="SSVI Loss" value={r.ssviLoss.toFixed(6)} />
+                </Columns>
+
+                <H2>Data Summary</H2>
+                <div className="flex gap-6 border-b mb-4 overflow-x-auto overflow-y-hidden" style={{ borderColor: ST.border }}>
+                  {["Options Data", "Surface Data", "SSVI Results"].map((label, i) => (
+                    <button
+                      key={label}
+                      onClick={() => setTab(i)}
+                      className="pb-2 -mb-px text-sm border-b-2 whitespace-nowrap"
+                      style={{ color: tab === i ? ST.primary : ST.text, borderColor: tab === i ? ST.primary : "transparent" }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {tab === 0 && (
+                  <DataFrame
+                    columns={["optionType", "strike", "timeToExpiry", "midPrice", "expiry"]}
+                    index={chain.rows.map((_, i) => i)}
+                    rows={chain.rows.map((o) => [o.optionType, o.strike, o.timeToExpiry, o.midPrice, o.expiry])}
+                  />
+                )}
+                {tab === 1 && (
+                  <DataFrame
+                    columns={["expiry", "K", "k", "w", "theta"]}
+                    index={r.surface.map((s) => s.index)}
+                    rows={r.surface.map((s) => [s.expiry, s.K, s.k, s.w, s.theta])}
+                  />
+                )}
+                {tab === 2 && (
+                  <DataFrame
+                    columns={["expiry", "K", "iv", "iv_ssvi", "iv_error"]}
+                    index={r.surface.map((s) => s.index)}
+                    rows={r.surface.map((s) => [s.expiry, s.K, s.iv, s.iv_ssvi, s.iv_error])}
+                  />
+                )}
+
+                <H2>Visualizations</H2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-[1.75rem] font-semibold pb-3">SSVI Residuals</h3>
+                    <MplScatter
+                      plotlyReady={plotlyReady}
+                      x={r.surface.map((s) => s.k)}
+                      y={r.surface.map((s) => s.residuals)}
+                      c={r.surface.map((s) => s.T)}
+                      xlabel="Log-Moneyness (k)"
+                      ylabel="Residuals"
+                      title="SSVI Model Residuals vs Log-Moneyness"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-[1.75rem] font-semibold pb-3">IV Error (%)</h3>
+                    <MplScatter
+                      plotlyReady={plotlyReady}
+                      x={r.surface.map((s) => s.k)}
+                      y={r.surface.map((s) => s.iv_error)}
+                      c={r.surface.map((s) => s.T)}
+                      xlabel="Log-Moneyness (k)"
+                      ylabel="Implied Volatility Error (%)"
+                      title="IV Error vs Log-Moneyness"
+                    />
+                  </div>
+                </div>
+
+                <H2>Performance Metrics</H2>
+                <Columns n={4}>
+                  <Metric label="IV RMSE" value={`${(r.metrics.rmse * 100).toFixed(4)}%`} />
+                  <Metric label="Vega Weighted RMSE" value={`${(r.metrics.vegaWeightedRmse * 100).toFixed(4)}%`} />
+                  <Metric label="Mean IV Error" value={`${r.metrics.meanIvError.toFixed(4)}%`} />
+                  <Metric label="Max IV Error" value={`${r.metrics.maxIvError.toFixed(4)}%`} />
+                </Columns>
+
+                <Alert kind="success">✓ Analysis complete!</Alert>
+
+                <H2>IV Surface Comparison</H2>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[720px]">
+                    <SurfaceComparison plotlyReady={plotlyReady} grid={r.grid} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {run.error && <Alert kind="error">Error during analysis: {run.error}</Alert>}
+          </>
         )}
-
-        <div className="flex gap-6 border-b mb-4" style={{ borderColor: ST.border }}>
-          {(["surface", "smile"] as const).map((id) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className="pb-2 -mb-px text-sm border-b-2 capitalize"
-              style={{
-                color: tab === id ? ST.primary : ST.text,
-                borderColor: tab === id ? ST.primary : "transparent",
-              }}
-            >
-              {id}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative">
-          <div ref={surfaceRef} className={tab === "surface" ? "w-full h-[560px]" : "hidden"} />
-          <div ref={smileRef} className={tab === "smile" ? "w-full h-[450px]" : "hidden"} />
-          {!plotlyReady && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm" style={{ color: ST.muted }}>
-              Running...
-            </div>
-          )}
-        </div>
       </main>
     </div>
   );
